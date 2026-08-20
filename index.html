@@ -1,0 +1,2955 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>R-PIX</title>
+
+<!-- PWA: permite instalar la app en el celular -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#093D77">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="R-PIX">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.1/index.min.js"></script>
+<style>
+  :root{
+    --bg:#F8F9FA;
+    --panel:#ffffff;
+    --panel2:#EAF1F8;
+    --accent:#3A7CA5;
+    --accent-dark:#093D77;
+    --accent2:#DAA520;
+    --accent2-dark:#B8860B;
+    --text:#2B2B2B;
+    --muted:#767c85;
+    --border:#e2e6ea;
+    --danger:#e5a3a3;
+    --danger-dark:#cf7d7d;
+    --lav:#DCE8F2;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',Roboto,system-ui,-apple-system,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding-bottom:88px;
+  }
+  header{
+    background:linear-gradient(135deg, var(--lav), var(--panel2));
+    padding:16px 16px 10px;
+    border-bottom:1px solid var(--border);
+    position:sticky;
+    top:0;
+    z-index:10;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  header .header-title{
+    flex:1;
+    min-width:0;
+    text-align:center;
+  }
+  header h1{
+    margin:0 0 4px;
+    font-size:1.25rem;
+    letter-spacing:0.3px;
+    color:var(--accent-dark);
+  }
+  header p{
+    margin:0;
+    color:var(--muted);
+    font-size:0.8rem;
+  }
+  .home-btn, .gear-btn{
+    flex-shrink:0;
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    border:none;
+    background:var(--panel);
+    box-shadow:0 2px 6px rgba(0,0,0,0.08);
+    font-size:1.1rem;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .gear-wrap{position:relative; flex-shrink:0;}
+  .gear-menu{
+    display:none;
+    position:absolute;
+    top:44px;
+    right:0;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.15);
+    overflow:hidden;
+    min-width:180px;
+    z-index:50;
+  }
+  .gear-menu.active{display:block;}
+  .gear-item{
+    display:block;
+    width:100%;
+    background:none;
+    border:none;
+    text-align:left;
+    padding:11px 14px;
+    font-size:0.82rem;
+    color:var(--text);
+    font-weight:600;
+    cursor:pointer;
+  }
+  .gear-item:active{background:var(--panel2);}
+  .gear-item + .gear-item{border-top:1px solid var(--border);}
+
+  /* ---- Pantalla de inicio ---- */
+  #home-screen{
+    padding:20px 16px 30px;
+  }
+  .home-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    max-width:520px;
+    margin:0 auto;
+  }
+  .home-tile{
+    aspect-ratio:1/1;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    color:#ffffff;
+    box-shadow:0 6px 18px rgba(0,0,0,0.12);
+  }
+  .home-tile:active{transform:scale(0.97);}
+  .home-tile-icon{font-size:2.6rem; line-height:1;}
+  .tile-locales{background:linear-gradient(135deg, var(--accent), var(--accent-dark));}
+  .tile-codigos{background:linear-gradient(135deg, var(--accent-dark), #061f3d);}
+  .tile-cuotas{background:linear-gradient(135deg, var(--accent2), var(--accent2-dark));}
+  .tile-marcas{background:linear-gradient(135deg, var(--accent2-dark), #7a5300);}
+  .tile-fotopdf{background:linear-gradient(135deg, #6d28d9, #3b1a78);}
+  .tile-promo{background:linear-gradient(135deg, #e0592a, #a3300f);}
+  nav{
+    display:flex;
+    align-items:center;
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    height:66px;
+    padding:0 14px;
+    background:var(--panel);
+    border-top:1px solid var(--border);
+    box-shadow:0 -4px 14px rgba(0,0,0,0.08);
+    z-index:20;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .nav-tabs{
+    display:flex;
+    flex:1;
+    justify-content:space-around;
+    align-items:center;
+    height:100%;
+  }
+  .nav-tabs .tab-btn{
+    flex:none;
+    background:transparent;
+    border:none;
+    border-radius:50%;
+    width:44px;
+    height:44px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--muted);
+    font-size:1.3rem;
+    cursor:pointer;
+    padding:0;
+  }
+  .nav-tabs .tab-btn.active{
+    background:linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color:#ffffff;
+    box-shadow:0 4px 10px rgba(0,0,0,0.18);
+  }
+  main{
+    padding:16px;
+    max-width:640px;
+    margin:0 auto;
+  }
+  .tab{display:none;}
+  .tab.active{display:block;}
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:14px;
+    margin-bottom:14px;
+    box-shadow:0 2px 8px rgba(180,150,160,0.08);
+  }
+  .card h2{
+    margin:0 0 12px;
+    font-size:1rem;
+    color:var(--accent-dark);
+  }
+  .card h2.collapsible-header{
+    margin:0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    cursor:pointer;
+    user-select:none;
+  }
+  #loc-form-body, #cod-form-body{
+    padding-top:12px;
+  }
+  label{
+    display:block;
+    font-size:0.75rem;
+    color:var(--muted);
+    margin:8px 0 4px;
+  }
+  input, select{
+    width:100%;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:var(--panel);
+    color:var(--text);
+    font-size:0.9rem;
+  }
+  input:focus, select:focus{
+    outline:none;
+    border-color:var(--accent);
+  }
+  .row2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  button.action{
+    margin-top:12px;
+    width:100%;
+    background:var(--accent);
+    color:#ffffff;
+    border:none;
+    padding:11px;
+    border-radius:10px;
+    font-weight:700;
+    font-size:0.9rem;
+    cursor:pointer;
+  }
+  button.action:active{background:var(--accent-dark);}
+  button.action.secondary{
+    background:var(--accent2);
+  }
+  button.action.secondary:active{background:var(--accent2-dark);}
+  .search-box{
+    margin-bottom:10px;
+  }
+  .empty{
+    color:var(--muted);
+    font-size:0.82rem;
+    text-align:center;
+    padding:12px;
+  }
+
+  /* ---- Tarjetas de registros (locales y productos) ---- */
+  .grid-cards{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .reg-card{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px;
+    position:relative;
+    cursor:pointer;
+    transition:transform .1s ease;
+  }
+  .reg-card:active{transform:scale(0.97);}
+  .reg-card strong{
+    display:block;
+    font-size:0.9rem;
+    color:var(--text);
+    margin-bottom:4px;
+  }
+  .reg-card strong.cod-num{
+    margin-top:-2px;
+    margin-bottom:6px;
+  }
+  .reg-card span{
+    display:block;
+    font-size:0.72rem;
+    color:var(--muted);
+    margin-top:2px;
+  }
+  .reg-card .price-afiliado{
+    color:var(--accent2-dark);
+    font-weight:700;
+    font-size:0.85rem;
+    margin-top:6px;
+  }
+  .del-btn{
+    position:absolute;
+    top:8px;
+    right:8px;
+    background:var(--panel);
+    border:1px solid var(--danger);
+    color:var(--danger-dark);
+    border-radius:6px;
+    width:24px;
+    height:24px;
+    font-size:0.75rem;
+    line-height:1;
+    cursor:pointer;
+  }
+
+  /* ---- Menu contextual (clic derecho / mantener presionado) ---- */
+  .ctx-menu{
+    position:fixed;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    box-shadow:0 8px 24px rgba(120,90,100,0.22);
+    z-index:200;
+    overflow:hidden;
+    min-width:150px;
+  }
+  .ctx-item{
+    display:block;
+    width:100%;
+    background:none;
+    border:none;
+    text-align:left;
+    padding:11px 14px;
+    font-size:0.85rem;
+    color:var(--danger-dark);
+    font-weight:600;
+    cursor:pointer;
+  }
+  .ctx-item:active{background:var(--panel2);}
+
+  /* ---- Tarjetas de locales (estilo lista, con tabla de extensiones) ---- */
+  .list-cards{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .local-card strong{
+    display:block;
+    font-size:0.95rem;
+    color:var(--text);
+  }
+  .local-card > span{
+    display:block;
+    font-size:0.75rem;
+    color:var(--muted);
+    margin-top:2px;
+  }
+  table.ext-table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+    font-size:0.8rem;
+  }
+  table.ext-table th, table.ext-table td{
+    padding:6px 4px;
+    text-align:left;
+    border-bottom:1px solid var(--border);
+  }
+  table.ext-table th{
+    color:var(--muted);
+    font-weight:600;
+    font-size:0.68rem;
+    text-transform:uppercase;
+  }
+  .mini-add-btn{
+    margin-top:10px;
+    background:var(--panel2);
+    border:1px dashed var(--accent);
+    color:var(--accent-dark);
+    border-radius:8px;
+    padding:7px 10px;
+    font-size:0.75rem;
+    font-weight:700;
+    cursor:pointer;
+  }
+
+  /* ---- Filas de área/extensión al agregar un local ---- */
+  .ext-row{
+    display:grid;
+    grid-template-columns:1fr 1fr auto;
+    gap:6px;
+    margin-bottom:6px;
+    align-items:center;
+  }
+  .ext-row input{padding:9px;}
+  .ext-row-del{
+    background:var(--panel);
+    border:1px solid var(--danger);
+    color:var(--danger-dark);
+    border-radius:8px;
+    padding:0 10px;
+    height:34px;
+    font-size:0.72rem;
+    font-weight:600;
+    white-space:nowrap;
+    cursor:pointer;
+  }
+  .badge{
+    display:inline-block;
+    font-size:0.66rem;
+    padding:2px 7px;
+    border-radius:20px;
+    margin-top:6px;
+  }
+  .badge.si{background:#dcefe6;color:var(--accent-dark);}
+  .badge.no{background:#f7dede;color:var(--danger-dark);}
+  .badge.promo-badge-verde{background:#dcefe6;color:#1f7a4d;}
+  .badge.promo-badge-amarillo{background:#fff3cd;color:#8a6d00;}
+  .badge.promo-badge-rojo{background:#f8d7da;color:#b02a2a;}
+  .badge.promo-badge-neutro{background:var(--panel2);color:var(--muted);}
+
+  /* ---- Modal código de barras ---- */
+  .modal-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(90,70,80,0.35);
+    z-index:100;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .modal-overlay.active{display:flex;}
+  .modal-overlay.modal-top{z-index:150;}
+  .modal-box{
+    background:var(--panel);
+    border-radius:16px;
+    padding:20px;
+    max-width:340px;
+    width:100%;
+    text-align:center;
+    box-shadow:0 10px 30px rgba(120,90,100,0.2);
+  }
+  .modal-box .modal-btn-row{
+    display:flex;
+    gap:10px;
+    margin-top:16px;
+  }
+  .modal-box .modal-btn-row button{
+    flex:1;
+    margin-top:0;
+  }
+  .modal-box p.modal-msg{
+    margin:6px 0 4px;
+    color:var(--text);
+    font-size:0.9rem;
+  }
+  .modal-box label{text-align:left;}
+  .st-link-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--accent2);
+    color:#ffffff;
+    font-size:0.65rem;
+    font-weight:800;
+    padding:3px 9px;
+    border-radius:20px;
+    text-decoration:none;
+    letter-spacing:0.5px;
+  }
+  .st-link-badge:active{background:var(--accent2-dark);}
+  .modal-box h3{
+    margin:0 0 4px;
+    font-size:1rem;
+    color:var(--text);
+  }
+  .modal-box .modal-precio{
+    color:var(--accent2-dark);
+    font-weight:800;
+    font-size:1.3rem;
+    margin:8px 0;
+  }
+  .modal-box svg{
+    width:100%;
+    max-width:280px;
+    margin:10px auto 4px;
+  }
+  .modal-box.modal-box-wide{
+    max-width:440px;
+  }
+  .modal-local-titlebar{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+  }
+  .modal-local-titlebar h3{margin:0;}
+  .add-inline-btn{
+    flex-shrink:0;
+    width:26px;
+    height:26px;
+    border-radius:50%;
+    border:none;
+    background:var(--accent);
+    color:#ffffff;
+    font-size:1rem;
+    font-weight:700;
+    line-height:1;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .add-inline-btn:active{background:var(--accent-dark);}
+  .modal-box .modal-code{
+    color:var(--muted);
+    font-size:0.8rem;
+    letter-spacing:1px;
+  }
+  .modal-close{
+    margin-top:16px;
+    width:100%;
+    background:var(--lav);
+    color:var(--accent-dark);
+    border:none;
+    padding:10px;
+    border-radius:10px;
+    font-weight:700;
+    cursor:pointer;
+  }
+
+  /* ---- Calculadora ---- */
+  table.calc-table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+    font-size:0.82rem;
+  }
+  table.calc-table th, table.calc-table td{
+    padding:8px 6px;
+    text-align:right;
+    border-bottom:1px solid var(--border);
+  }
+  table.calc-table th:first-child, table.calc-table td:first-child{
+    text-align:left;
+  }
+  table.calc-table th{
+    color:var(--muted);
+    font-weight:600;
+    font-size:0.7rem;
+    text-transform:uppercase;
+  }
+  .result-box{
+    margin-top:14px;
+    background:var(--panel2);
+    border:1px solid var(--accent);
+    border-radius:12px;
+    padding:12px;
+    font-size:0.85rem;
+  }
+  .result-box .big{
+    font-size:1.3rem;
+    font-weight:700;
+    color:var(--accent2-dark);
+  }
+  .checkbox-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-top:10px;
+  }
+  .checkbox-row input{width:auto;}
+  .checkbox-row label{margin:0;color:var(--text);font-size:0.85rem;}
+  .divider{
+    height:1px;
+    background:var(--border);
+    margin:14px 0;
+  }
+  .hint{
+    font-size:0.7rem;
+    color:var(--muted);
+    margin-top:4px;
+  }
+
+  /* ---- Foto a PDF ---- */
+  .fpdf-upload-row{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .fpdf-upload{
+    display:block;
+    border:2px dashed var(--border);
+    border-radius:16px;
+    padding:18px 10px;
+    text-align:center;
+    background:var(--panel2);
+    cursor:pointer;
+  }
+  .fpdf-upload .fpdf-ico{font-size:2.2rem;}
+  .fpdf-upload b{display:block; font-size:0.95rem; margin-top:4px; color:var(--accent-dark);}
+  .fpdf-upload small{display:block; color:var(--muted); margin-top:4px; font-size:0.75rem;}
+  input[type=file].fpdf-file{display:none;}
+  .fpdf-toolbar{display:flex; gap:10px; margin-top:12px;}
+  .fpdf-toolbar button{flex:1;}
+  .fpdf-status{text-align:center; color:var(--muted); font-size:0.78rem; min-height:16px; margin-top:8px;}
+  .fpdf-grid{display:grid; grid-template-columns:1fr; gap:16px;}
+  .fpdf-empty{text-align:center; color:var(--muted); padding:18px 5px; font-size:0.85rem;}
+  .fpdf-photo{border:1px solid var(--border); border-radius:16px; background:var(--panel2); overflow:hidden;}
+  .fpdf-preview{position:relative; background:#e4eaf1; min-height:260px; padding:14px; display:flex; align-items:center; justify-content:center;}
+  .fpdf-preview img{max-width:100%; max-height:360px; width:auto; height:auto; object-fit:contain; display:block;}
+  .fpdf-number{position:absolute; left:10px; top:10px; background:rgba(9,61,119,.85); color:#fff; border-radius:8px; padding:4px 8px; font-size:0.75rem; font-weight:700;}
+  .fpdf-remove{position:absolute; right:10px; top:10px; width:36px; height:36px; border-radius:10px; border:none; background:rgba(255,255,255,.95); color:var(--danger-dark); font-size:1.2rem; box-shadow:0 3px 10px rgba(0,0,0,.15); cursor:pointer;}
+  .fpdf-edit-tip{text-align:center; color:var(--muted); font-size:0.7rem; padding:8px 10px 0;}
+  .fpdf-controls{display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:12px;}
+  .fpdf-controls button{background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:9px 6px; font-weight:600; font-size:0.78rem; cursor:pointer;}
+  .fpdf-controls .fpdf-reset{grid-column:span 2;}
+  .fpdf-settings-row{display:flex; gap:10px;}
+  .fpdf-settings-row > div{flex:1;}
+  .fpdf-editor-preview{height:260px; background:#e4eaf1; border-radius:14px; display:flex; align-items:center; justify-content:center; overflow:hidden; margin:12px 0;}
+  .fpdf-editor-preview img{max-width:100%; max-height:100%; object-fit:contain;}
+  .fpdf-adjust{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .fpdf-range{border:1px solid var(--border); border-radius:12px; padding:10px;}
+  .fpdf-range label{display:flex; justify-content:space-between; font-size:0.72rem; font-weight:700; color:var(--text);}
+  .fpdf-range input{width:100%; margin-top:6px;}
+  .fpdf-crop-title{font-weight:700; font-size:0.82rem; margin:14px 0 6px; color:var(--accent-dark);}
+  .fpdf-cropgrid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .fpdf-cropgrid label{font-size:0.72rem; font-weight:600; color:var(--muted);}
+  .fpdf-cropgrid input{margin-top:4px;}
+  .fpdf-sheetactions{display:flex; gap:10px; margin-top:14px;}
+  .fpdf-sheetactions button{flex:1;}
+  .fpdf-name-header{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .wa-share-btn{
+    flex-shrink:0;
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    border:none;
+    background:linear-gradient(135deg,#25D366,#128C7E);
+    color:#ffffff;
+    font-size:1.25rem;
+    box-shadow:0 3px 10px rgba(0,0,0,.18);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .wa-share-btn:active{transform:scale(0.95);}
+  .wa-type-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:6px;}
+  .wa-type-btn{
+    border:1px solid var(--border);
+    background:var(--panel2);
+    color:var(--text);
+    border-radius:10px;
+    padding:10px 6px;
+    font-weight:700;
+    font-size:0.8rem;
+    cursor:pointer;
+  }
+  .wa-type-btn.active{
+    background:linear-gradient(135deg,#25D366,#128C7E);
+    color:#ffffff;
+    border-color:transparent;
+  }
+  .wa-preview-title{font-weight:700; font-size:0.82rem; margin:14px 0 6px; color:var(--accent-dark);}
+
+  /* ---- Producto Mes/Liquidación ---- */
+  .promo-photo-wrap{
+    position:relative;
+    border:2px dashed var(--border);
+    border-radius:16px;
+    background:var(--panel2);
+    min-height:150px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    margin-bottom:6px;
+  }
+  .promo-photo-wrap img{width:100%; height:100%; max-height:220px; object-fit:contain; display:block;}
+  .promo-photo-empty{text-align:center; color:var(--muted); font-size:0.8rem; padding:20px 10px;}
+  .promo-photo-remove{
+    position:absolute; right:8px; top:8px; width:32px; height:32px; border-radius:9px;
+    border:none; background:rgba(255,255,255,.95); color:var(--danger-dark);
+    font-size:1.05rem; box-shadow:0 3px 10px rgba(0,0,0,.15); cursor:pointer; display:none;
+  }
+  .promo-photo-wrap.tiene-foto .promo-photo-remove{display:block;}
+  .promo-photo-wrap.tiene-foto .promo-photo-empty{display:none;}
+  .promo-cuotas-box{
+    margin-top:10px;
+    background:var(--panel2);
+    border:1px solid var(--accent2);
+    border-radius:12px;
+    padding:10px 12px;
+  }
+  .promo-cuotas-box .promo-cuotas-title{
+    font-weight:700; font-size:0.78rem; color:var(--accent2-dark); margin-bottom:6px;
+    display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;
+  }
+  .promo-cuotas-box .promo-cuotas-toggle-icon{font-size:0.9rem;}
+  .promo-corner-btn{
+    position:absolute; top:10px; right:10px;
+    width:34px; height:34px;
+    border-radius:50%;
+    border:1px solid var(--accent2);
+    background:#fff6e6;
+    font-size:1rem;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    box-shadow:0 2px 6px rgba(0,0,0,.08);
+  }
+  .promo-corner-btn:active{transform:scale(0.94);}
+  .search-icon-btn{
+    background:none; border:none; font-size:1.1rem; cursor:pointer;
+    padding:2px; line-height:1; color:var(--accent-dark);
+  }
+  .modal-code{font-weight:700;}
+  .promo-tiempo{
+    display:inline-flex; align-items:center; gap:4px;
+    font-size:0.7rem; font-weight:700;
+    padding:2px 8px; border-radius:20px; margin-top:6px;
+  }
+  .promo-tiempo.verde{background:#dcefe6; color:#1f7a4d;}
+  .promo-tiempo.amarillo{background:#fff3cd; color:#8a6d00;}
+  .promo-tiempo.rojo{background:#f8d7da; color:#b02a2a;}
+  .reg-card.promo-card-verde{border-left:5px solid #2f9e5f; background:#f2fbf6;}
+  .reg-card.promo-card-amarillo{border-left:5px solid #e0b400; background:#fffaf0;}
+  .reg-card.promo-card-rojo{border-left:5px solid #d64545; background:#fdf2f2;}
+  .reg-card.promo-card-vencida strong,
+  .reg-card.promo-card-vencida .price-afiliado{text-decoration:line-through; opacity:.7;}
+  .modal-box-wide.promo-modal-verde{border-top:5px solid #2f9e5f;}
+  .modal-box-wide.promo-modal-amarillo{border-top:5px solid #e0b400;}
+  .modal-box-wide.promo-modal-rojo{border-top:5px solid #d64545;}
+  .modal-box-wide.promo-modal-vencida #promo-detail-desc,
+  .modal-box-wide.promo-modal-vencida #promo-detail-precio{text-decoration:line-through; opacity:.7;}
+  .promo-detail-photo{
+    width:100%; max-height:220px; border-radius:12px; overflow:hidden;
+    background:var(--panel2); display:flex; align-items:center; justify-content:center; margin-bottom:10px;
+  }
+  .promo-detail-photo img{width:100%; height:100%; max-height:220px; object-fit:contain;}
+  .promo-detail-obs{
+    text-align:left; background:var(--panel2); border-radius:10px; padding:10px 12px;
+    font-size:0.82rem; margin-top:10px; white-space:pre-wrap; word-break:break-word;
+  }
+  .wa-preview{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 12px;
+    font-family:inherit;
+    font-size:0.85rem;
+    white-space:pre-wrap;
+    word-break:break-word;
+    margin:0;
+    min-height:66px;
+  }
+
+  /* ---- Modal: mover menu ---- */
+  .mover-lista{display:flex; flex-direction:column; gap:8px; margin:12px 0;}
+  .mover-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:8px 10px;
+  }
+  .mover-item .mover-icon{font-size:1.3rem; width:28px; text-align:center;}
+  .mover-item .mover-label{flex:1; font-size:0.85rem; font-weight:600; color:var(--text);}
+  .mover-item .mover-arrows{display:flex; gap:6px;}
+  .mover-item .mover-arrows button{
+    width:32px; height:32px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--panel);
+    font-size:0.9rem;
+    cursor:pointer;
+  }
+  .mover-item .mover-arrows button:disabled{opacity:.35; cursor:not-allowed;}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<header>
+  <button class="home-btn" id="home-btn" onclick="irAInicio()" title="Inicio">🏠</button>
+  <div class="header-title">
+    <h1>R-PIX</h1>
+    <p>En desarrollo · v0.1.0 · 2026 Paul Chicaiza</p>
+  </div>
+  <div class="gear-wrap">
+    <button class="gear-btn" id="gear-btn" onclick="toggleGearMenu(event)" title="Configuración">⚙️</button>
+    <div class="gear-menu" id="gear-menu">
+      <button type="button" class="gear-item" onclick="cerrarGearMenu(); exportarDatos();">⬇️ Exportar datos (.json)</button>
+      <button type="button" class="gear-item" onclick="abrirImportarDesdeGear();">⬆️ Importar datos</button>
+      <button type="button" class="gear-item" onclick="instalarApp();">📲 Instalar app</button>
+      <button type="button" class="gear-item" onclick="cerrarGearMenu(); abrirModalMover();">🔀 Mover menú</button>
+    </div>
+  </div>
+  <input type="file" id="gear-import-file" accept="application/json,.json" style="display:none;" onchange="importarDatosDesdeGear(event)">
+</header>
+
+<!-- PANTALLA DE INICIO -->
+<div id="home-screen">
+  <div class="home-grid">
+    <div class="home-tile tile-fotopdf" onclick="irASeccion('tab6')" title="Foto a PDF">
+      <div class="home-tile-icon">📄</div>
+    </div>
+    <div class="home-tile tile-locales" onclick="irASeccion('tab1')" title="Locales">
+      <div class="home-tile-icon">📍</div>
+    </div>
+    <div class="home-tile tile-codigos" onclick="irASeccion('tab2')" title="Códigos">
+      <div class="home-tile-icon">🏷️</div>
+    </div>
+    <div class="home-tile tile-cuotas" onclick="irASeccion('tab3')" title="Cuotas">
+      <div class="home-tile-icon">🧮</div>
+    </div>
+    <div class="home-tile tile-marcas" onclick="irASeccion('tab4')" title="Marcas">
+      <div class="home-tile-icon">🏭</div>
+    </div>
+  </div>
+</div>
+
+<nav id="main-nav">
+  <div class="nav-tabs" id="nav-tabs"></div>
+</nav>
+
+<main id="main-content" style="display:none;">
+
+  <!-- TAB 1: LOCALES -->
+  <section id="tab1" class="tab active">
+    <div class="card">
+      <h2 class="collapsible-header" onclick="toggleLocForm()">
+        <span>Agregar local</span>
+        <span id="loc-form-toggle-icon">＋</span>
+      </h2>
+      <div id="loc-form-body" style="display:none;">
+        <label>Código de local</label>
+        <input type="text" id="loc-codigo" placeholder="Ej: 711 o LOC-001">
+        <label>Nombre de local</label>
+        <input type="text" id="loc-nombre" placeholder="Ej: MEGAMAXI 6 DE DICIEMBRE">
+
+        <div class="divider"></div>
+        <label>Extensiones por área</label>
+        <div id="loc-ext-rows"></div>
+        <button type="button" class="action secondary" onclick="agregarFilaExtension()">+ Agregar área / extensión</button>
+
+        <button class="action" onclick="agregarLocal()">Guardar local</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Buscar</h2>
+      <input type="text" class="search-box" id="loc-search" placeholder="Buscar por código, nombre, área o extensión..." oninput="renderLocales()">
+      <p class="hint">Toca una tarjeta para ver todas sus extensiones. Clic derecho (o mantener presionado 3 seg) para eliminarla.</p>
+      <div class="list-cards" id="loc-lista"></div>
+    </div>
+  </section>
+
+  <!-- TAB 2: CODIGOS DE BARRAS -->
+  <section id="tab2" class="tab">
+    <div class="card">
+      <h2 class="collapsible-header">
+        <span onclick="toggleCodForm()" style="flex:1; cursor:pointer;">Agregar producto</span>
+        <span style="display:flex; align-items:center; gap:12px;">
+          <button type="button" class="search-icon-btn" onclick="toggleCodBuscar()" title="Buscar">🔍</button>
+          <span id="cod-form-toggle-icon" onclick="toggleCodForm()" style="cursor:pointer;">＋</span>
+        </span>
+      </h2>
+      <div id="cod-form-body" style="display:none;">
+        <label>Código de barras</label>
+        <input type="text" id="cod-barra" placeholder="Ej: 7861234567890">
+        <label>Descripción</label>
+        <input type="text" id="cod-desc" placeholder="Ej: Audífonos inalámbricos">
+        <div class="row2">
+          <div>
+            <label>Precio normal</label>
+            <input type="number" step="0.01" id="cod-precio-normal" placeholder="0.00">
+          </div>
+          <div>
+            <label>Precio afiliado</label>
+            <input type="number" step="0.01" id="cod-precio-afiliado" placeholder="0.00">
+          </div>
+        </div>
+        <button class="action" onclick="agregarCodigo()">Agregar producto</button>
+      </div>
+    </div>
+    <div class="card">
+      <div id="cod-search-wrap" style="display:none; margin-bottom:12px;">
+        <input type="text" class="search-box" id="cod-search" placeholder="Buscar por código o descripción..." oninput="renderCodigos()">
+      </div>
+      <p class="hint">Toca una tarjeta para ver el código de barras escaneable.</p>
+      <div class="grid-cards" id="cod-lista"></div>
+    </div>
+  </section>
+
+  <!-- TAB 3: CALCULADORA -->
+  <section id="tab3" class="tab">
+    <div class="card" style="position:relative;">
+      <button type="button" class="promo-corner-btn" onclick="irASeccion('tab7')" title="Productos Mes/Liquidación">⏳</button>
+      <h2 style="display:flex;align-items:center;gap:8px;">
+        Calculadora de cuotas
+        <a href="https://maxiseguros.ec/por-que-contratar-maxi-seguros/" target="_blank" rel="noopener" class="st-link-badge" title="Maxi Seguros - ¿Por qué contratar ST?">ST</a>
+      </h2>
+      <div class="row2">
+        <div>
+          <label>Precio del producto</label>
+          <input type="number" step="0.01" id="calc-precio" placeholder="0.00" oninput="calcularSinIntereses(true)">
+        </div>
+        <div>
+          <label>Valor seguro ST</label>
+          <input type="number" step="0.01" id="calc-seguro" placeholder="0.00" oninput="calcularSinIntereses(false)">
+        </div>
+      </div>
+      <p class="hint">Si el precio supera $100, el seguro ST se calcula automáticamente al 15% del precio (puedes editarlo manualmente). El seguro se suma al diferir sin intereses. Al diferir con intereses, el interés aplica solo sobre el precio del producto; el seguro se reparte sin interés.</p>
+
+      <div class="divider"></div>
+      <h2>Sin intereses</h2>
+      <div style="overflow-x:auto;">
+      <table class="calc-table" id="calc-tabla-si">
+        <thead>
+          <tr><th>Meses</th><th>Cuota producto</th><th>Cuota seguro ST</th><th>Cuota total</th></tr>
+        </thead>
+        <tbody id="calc-tabla-si-body"></tbody>
+      </table>
+      </div>
+      <div class="divider"></div>
+      <h2>Con interés anual (manual)</h2>
+      <div class="row2">
+        <div>
+          <label>Tasa de interés anual (%)</label>
+          <input type="number" step="0.01" id="calc-tasa" placeholder="Ej: 16.5">
+        </div>
+        <div>
+          <label>Plazo en meses</label>
+          <select id="calc-meses-interes">
+            <option value="3">3 meses</option>
+            <option value="6">6 meses</option>
+            <option value="9">9 meses</option>
+            <option value="12" selected>12 meses</option>
+            <option value="15">15 meses</option>
+            <option value="18">18 meses</option>
+            <option value="custom">Otro...</option>
+          </select>
+        </div>
+      </div>
+      <div id="calc-meses-custom-wrap" style="display:none;">
+        <label>Número de meses</label>
+        <input type="number" id="calc-meses-custom" placeholder="Ej: 24">
+      </div>
+      <button class="action secondary" onclick="calcularConIntereses()">Calcular con interés</button>
+      <div class="result-box" id="calc-resultado-interes" style="display:none;"></div>
+    </div>
+  </section>
+
+  <!-- TAB 4: MARCAS -->
+  <section id="tab4" class="tab">
+    <div class="card">
+      <h2 class="collapsible-header" onclick="toggleMarcaForm()">
+        <span>Agregar marca</span>
+        <span id="marca-form-toggle-icon">＋</span>
+      </h2>
+      <div id="marca-form-body" style="display:none;">
+        <label>Nombre de la marca</label>
+        <input type="text" id="marca-nombre" placeholder="Ej: Samsung">
+        <div class="checkbox-row">
+          <input type="checkbox" id="marca-servicio">
+          <label for="marca-servicio">Aplica a servicio técnico</label>
+        </div>
+        <button class="action" onclick="agregarMarca()">Agregar marca</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Buscar</h2>
+      <input type="text" class="search-box" id="marca-search" placeholder="Buscar marca..." oninput="renderMarcas()">
+      <div class="grid-cards" id="marca-lista"></div>
+    </div>
+  </section>
+
+  <!-- TAB 7: PRODUCTO MES / LIQUIDACION -->
+  <section id="tab7" class="tab">
+    <div class="card">
+      <h2 class="collapsible-header" onclick="togglePromoForm()">
+        <span>Agregar producto</span>
+        <span id="promo-form-toggle-icon">＋</span>
+      </h2>
+      <div id="promo-form-body" style="display:none;">
+
+        <label>Foto del producto</label>
+        <div class="promo-photo-wrap" id="promo-photo-wrap">
+          <div class="promo-photo-empty">Sin foto seleccionada</div>
+          <img id="promo-photo-preview" style="display:none;">
+          <button type="button" class="promo-photo-remove" id="promo-photo-removeBtn" title="Quitar foto">✕</button>
+        </div>
+        <div class="fpdf-upload-row">
+          <label class="fpdf-upload" for="promo-cameraInput">
+            <div class="fpdf-ico">📷</div>
+            <b>Tomar foto</b>
+            <small>Usa la cámara</small>
+          </label>
+          <label class="fpdf-upload" for="promo-galleryInput">
+            <div class="fpdf-ico">🖼️</div>
+            <b>Elegir de galería</b>
+            <small>Selecciona una imagen</small>
+          </label>
+        </div>
+        <input class="fpdf-file" id="promo-cameraInput" type="file" accept="image/*" capture="environment">
+        <input class="fpdf-file" id="promo-galleryInput" type="file" accept="image/*">
+
+        <label>Descripción</label>
+        <input type="text" id="promo-desc" placeholder="Ej: Licuadora Oster 3 velocidades">
+
+        <div class="row2">
+          <div>
+            <label>Precio</label>
+            <input type="number" step="0.01" id="promo-precio" placeholder="0.00" oninput="promoActualizarCuotasPreview()">
+          </div>
+          <div>
+            <label>Código</label>
+            <input type="text" id="promo-codigo" placeholder="Ej: 7861234567890" inputmode="numeric">
+          </div>
+        </div>
+
+        <label>Tipo de producto</label>
+        <div class="wa-type-grid">
+          <button type="button" class="wa-type-btn active" id="promo-tipo-mes" onclick="promoSeleccionarTipo('mes')">📅 Mes</button>
+          <button type="button" class="wa-type-btn" id="promo-tipo-liq" onclick="promoSeleccionarTipo('liquidacion')">⏳ Liquidación</button>
+        </div>
+
+        <label>Fecha de fin de promoción</label>
+        <input type="date" id="promo-fin">
+
+        <label>Observaciones</label>
+        <textarea id="promo-obs" placeholder="Ej: Solo mientras haya stock" rows="3" style="width:100%; padding:10px; border-radius:10px; border:1px solid var(--border); font-family:inherit; font-size:0.9rem; resize:vertical;"></textarea>
+
+        <div class="promo-cuotas-box" id="promo-cuotas-box" style="display:none;">
+          <div class="promo-cuotas-title" onclick="togglePromoCuotasBox('promo-cuotas-table-wrap','promo-cuotas-toggle-icon')">
+            <span>💳 Diferido sin intereses (precio mayor a $40)</span>
+            <span class="promo-cuotas-toggle-icon" id="promo-cuotas-toggle-icon">▸</span>
+          </div>
+          <div id="promo-cuotas-table-wrap" style="display:none; overflow-x:auto;">
+            <table class="calc-table">
+              <thead><tr><th>Meses</th><th>Cuota</th></tr></thead>
+              <tbody id="promo-cuotas-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <button class="action" onclick="agregarProductoPromo()">Agregar producto</button>
+      </div>
+    </div>
+    <div class="card">
+      <p class="hint">Toca una tarjeta para ver el detalle, el código de barras y las cuotas.</p>
+      <div class="grid-cards" id="promo-lista"></div>
+    </div>
+  </section>
+
+  <!-- TAB 5: DATOS (EXPORTAR / IMPORTAR) -->
+  <section id="tab5" class="tab">
+    <div class="card">
+      <p class="hint">✅ Tus datos se guardan automáticamente en este navegador (aunque cierres o actualices la página). Usa las opciones de abajo solo para compartir o respaldar la información en otro equipo.</p>
+    </div>
+    <div class="card">
+      <h2>Exportar todo</h2>
+      <p class="hint">Descarga un archivo .json con todos los locales (y sus extensiones), códigos de barras y marcas. Comparte ese archivo junto con el HTML para que otra persona tenga los mismos datos.</p>
+      <button class="action" onclick="exportarDatos()">⬇️ Exportar todo (.json)</button>
+      <button class="action secondary" onclick="exportarExcel()">📊 Exportar en Excel (.xlsx)</button>
+    </div>
+    <div class="card">
+      <h2>Exportar por separado</h2>
+      <p class="hint">Descarga cada sección en su propio archivo .json.</p>
+      <button class="action secondary" onclick="exportarLocales()">📍 Exportar Locales</button>
+      <button class="action secondary" onclick="exportarCodigos()">🏷️ Exportar Códigos</button>
+      <button class="action secondary" onclick="exportarMarcas()">🏭 Exportar Marcas</button>
+      <button class="action secondary" onclick="exportarProductosPromo()">⏳ Exportar Mes/Liquidación</button>
+      <p class="hint">La pestaña "Cuotas" es una calculadora y no guarda registros, por eso no tiene exportación propia.</p>
+    </div>
+    <div class="card">
+      <h2>Importar datos</h2>
+      <p class="hint">Selecciona un archivo .json (completo o de una sola sección). Se reemplazará solo lo que venga en ese archivo; el resto de tus datos actuales no se toca.</p>
+      <input type="file" id="import-file" accept="application/json,.json">
+      <button class="action" onclick="importarDatos()">⬆️ Importar datos</button>
+    </div>
+  </section>
+
+  <!-- TAB 6: FOTO A PDF -->
+  <section id="tab6" class="tab">
+    <div class="card">
+      <div class="fpdf-name-header">
+        <h2 style="margin:0;">Nombre del PDF</h2>
+        <button type="button" class="wa-share-btn" id="fpdf-waOpenBtn" title="Enviar por WhatsApp">📲</button>
+      </div>
+      <input type="text" id="fpdf-filename" value="Convenio de Entrega a Domicilio TIPTI" placeholder="Ej: documentos-agosto" style="margin-top:10px;">
+    </div>
+    <div class="card">
+      <div class="fpdf-upload-row">
+        <label class="fpdf-upload" for="fpdf-cameraInput">
+          <div class="fpdf-ico">📷</div>
+          <b>Tomar foto</b>
+          <small>Usa la cámara para fotografiar el documento</small>
+        </label>
+        <label class="fpdf-upload" for="fpdf-galleryInput">
+          <div class="fpdf-ico">🖼️</div>
+          <b>Elegir de galería</b>
+          <small>Selecciona una o varias imágenes ya guardadas</small>
+        </label>
+      </div>
+      <input class="fpdf-file" id="fpdf-cameraInput" type="file" accept="image/*" capture="environment">
+      <input class="fpdf-file" id="fpdf-galleryInput" type="file" accept="image/*,.heic,.heif,.webp,.bmp,.tif,.tiff,.gif,.avif,.png,.jpg,.jpeg" multiple>
+      <div class="fpdf-toolbar">
+        <button class="action secondary" id="fpdf-clearBtn" disabled>Limpiar</button>
+        <button class="action" id="fpdf-pdfBtn" disabled>Crear PDF</button>
+      </div>
+      <div class="fpdf-status" id="fpdf-status"></div>
+    </div>
+    <div class="card">
+      <h2>Configuración del PDF</h2>
+      <div class="fpdf-settings-row">
+        <div>
+          <label>Tamaño de página</label>
+          <select id="fpdf-pageSize">
+            <option value="a4">A4</option>
+            <option value="letter">Carta</option>
+          </select>
+        </div>
+        <div>
+          <label>Orientación</label>
+          <select id="fpdf-orientation">
+            <option value="auto">Automática</option>
+            <option value="portrait">Vertical</option>
+            <option value="landscape">Horizontal</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Fotos</h2>
+      <div class="fpdf-empty" id="fpdf-empty">Aún no has seleccionado ninguna foto.</div>
+      <div class="fpdf-grid" id="fpdf-grid"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- MODAL: EDITAR FOTO (FOTO A PDF) -->
+<div class="modal-overlay modal-top" id="fpdf-editorOverlay">
+  <div class="modal-box" style="max-width:420px; text-align:left;">
+    <h2 style="margin:0 0 10px;">Editar foto</h2>
+    <div class="fpdf-editor-preview"><img id="fpdf-editorImg"></div>
+    <div class="fpdf-adjust">
+      <div class="fpdf-range">
+        <label>☀️ Brillo <span id="fpdf-vBrightness">100%</span></label>
+        <input id="fpdf-brightness" type="range" min="50" max="160" value="100">
+      </div>
+      <div class="fpdf-range">
+        <label>◐ Contraste <span id="fpdf-vContrast">100%</span></label>
+        <input id="fpdf-contrast" type="range" min="50" max="160" value="100">
+      </div>
+      <div class="fpdf-range">
+        <label>✨ Nitidez <span id="fpdf-vSharpness">0</span></label>
+        <input id="fpdf-sharpness" type="range" min="0" max="3" step=".5" value="0">
+      </div>
+      <div class="fpdf-range">
+        <label>🎨 Saturación <span id="fpdf-vSaturation">100%</span></label>
+        <input id="fpdf-saturation" type="range" min="0" max="180" value="100">
+      </div>
+    </div>
+    <div class="fpdf-crop-title">✂️ Recorte en porcentaje</div>
+    <div class="fpdf-cropgrid">
+      <label>Izquierda %<input id="fpdf-cropL" type="number" min="0" max="49" value="0"></label>
+      <label>Derecha %<input id="fpdf-cropR" type="number" min="0" max="49" value="0"></label>
+      <label>Arriba %<input id="fpdf-cropT" type="number" min="0" max="49" value="0"></label>
+      <label>Abajo %<input id="fpdf-cropB" type="number" min="0" max="49" value="0"></label>
+    </div>
+    <div class="fpdf-sheetactions">
+      <button class="action secondary" id="fpdf-resetEdit">Restablecer</button>
+      <button class="action" id="fpdf-saveEdit">Aplicar cambios</button>
+    </div>
+    <button class="action secondary" style="margin-top:8px;" id="fpdf-closeEditor">Cerrar</button>
+  </div>
+</div>
+
+<!-- MODAL: ENVIAR PDF POR WHATSAPP -->
+<div class="modal-overlay modal-top" id="fpdf-waOverlay">
+  <div class="modal-box" style="max-width:420px; text-align:left;">
+    <h2 style="margin:0 0 10px;">Enviar por WhatsApp</h2>
+    <div class="wa-type-grid">
+      <button type="button" class="wa-type-btn active" data-tipo="sispe">SISPE</button>
+      <button type="button" class="wa-type-btn" data-tipo="local">LOCAL</button>
+      <button type="button" class="wa-type-btn" data-tipo="anulacion">ANULACIÓN</button>
+      <button type="button" class="wa-type-btn" data-tipo="reagendar">REAGENDAR</button>
+    </div>
+
+    <div id="wa-field-tipoEntrega" style="display:none;">
+      <label>Tipo de entrega</label>
+      <select id="wa-tipoEntrega">
+        <option value="Sispe">Sispe</option>
+        <option value="Local">Local</option>
+      </select>
+    </div>
+
+    <label id="wa-label-fecha">Fecha de Entrega</label>
+    <input type="date" id="wa-fecha">
+
+    <label>Convenio</label>
+    <input type="text" id="wa-convenio" placeholder="Ej: 145039" inputmode="numeric">
+
+    <div id="wa-field-reserva">
+      <label>Sispe/Reserva</label>
+      <input type="text" id="wa-reserva" placeholder="Ej: 70903" inputmode="numeric">
+    </div>
+
+    <div class="wa-preview-title">Vista previa del mensaje</div>
+    <pre class="wa-preview" id="wa-preview"></pre>
+
+    <div class="fpdf-sheetactions">
+      <button class="action secondary" id="wa-cancelBtn">Cancelar</button>
+      <button class="action" id="wa-sendBtn">📲 Enviar por WhatsApp</button>
+    </div>
+    <div class="fpdf-status" id="wa-status"></div>
+  </div>
+</div>
+
+<!-- MODAL: MOVER MENU INFERIOR -->
+<div class="modal-overlay modal-top" id="modal-mover-overlay">
+  <div class="modal-box" style="max-width:380px; text-align:left;">
+    <h2 style="margin:0 0 6px;">Mover menú inferior</h2>
+    <p class="hint">Usa las flechas para cambiar el orden de los iconos. Luego toca Aplicar.</p>
+    <div class="mover-lista" id="mover-lista"></div>
+    <div class="modal-btn-row">
+      <button class="action secondary" onclick="cerrarModalMover()">Cancelar</button>
+      <button class="action" onclick="aplicarOrdenMenu()">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GENERICO: AVISO / CONFIRMACION (reemplaza alert() y confirm() nativos) -->
+<div class="modal-overlay modal-top" id="modal-generico-overlay">
+  <div class="modal-box">
+    <p class="modal-msg" id="modal-generico-mensaje"></p>
+    <div class="modal-btn-row" id="modal-generico-botones"></div>
+  </div>
+</div>
+
+<!-- MODAL: DATOS DEL TALLER (al agregar una marca con servicio técnico) -->
+<div class="modal-overlay modal-top" id="modal-taller-overlay">
+  <div class="modal-box modal-box-wide">
+    <h3>Datos del taller de servicio técnico</h3>
+    <div id="taller-info-vinculado" style="display:none; text-align:left; background:var(--panel2); border-radius:10px; padding:10px 12px; margin-bottom:10px; font-size:0.8rem;">
+      <div><strong>Este taller ya cubre:</strong> <span id="taller-marcas-cubiertas"></span></div>
+      <div style="margin-top:4px;"><strong>Tipos de productos:</strong> <span id="taller-tipos-actuales"></span></div>
+    </div>
+    <label>Nombre del taller</label>
+    <input type="text" id="taller-nombre" placeholder="Ej: Taller ElectroFix" oninput="buscarTallerExistente()">
+    <label>Teléfono</label>
+    <input type="text" id="taller-telefono" placeholder="Ej: 099 123 4567">
+    <label>Dirección</label>
+    <input type="text" id="taller-direccion" placeholder="Ej: Av. Amazonas y Naciones Unidas">
+    <label>Horario de atención</label>
+    <input type="text" id="taller-horario" placeholder="Ej: Lun-Vie 9:00-18:00">
+    <label>Tipos de productos que atiende</label>
+    <input type="text" id="taller-tipos" placeholder="Ej: Celulares, Televisores, Audio">
+    <div class="modal-btn-row">
+      <button class="modal-close" onclick="cerrarModalTaller()">Cancelar</button>
+      <button class="action" onclick="confirmarTaller()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: DETALLE DE TALLER (solo lectura, al tocar una marca con taller) -->
+<div class="modal-overlay modal-top" id="modal-taller-detalle-overlay" onclick="cerrarModalTallerDetalleSiFondo(event)">
+  <div class="modal-box modal-box-wide">
+    <h3 id="td-nombre"></h3>
+    <table class="ext-table" style="margin-top:6px;">
+      <tbody id="td-cuerpo"></tbody>
+    </table>
+    <button class="modal-close" onclick="cerrarModalTallerDetalle()">Cerrar</button>
+  </div>
+</div>
+
+<!-- MODAL: AÑADIR EXTENSION A UN LOCAL (reemplaza prompt() nativo) -->
+<div class="modal-overlay modal-top" id="modal-add-ext-overlay">
+  <div class="modal-box">
+    <h3>Añadir extensión</h3>
+    <label>Área</label>
+    <input type="text" id="add-ext-area" placeholder="Ej: COCINA">
+    <label>Extensión</label>
+    <input type="text" id="add-ext-num" placeholder="Ej: 6860">
+    <div class="modal-btn-row">
+      <button class="modal-close" onclick="cerrarModalAddExt()">Cancelar</button>
+      <button class="action" onclick="confirmarAddExt()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE DE LOCAL (todas las extensiones) -->
+<div class="modal-overlay" id="modal-local-overlay" onclick="cerrarModalLocalSiFondo(event)">
+  <div class="modal-box modal-box-wide">
+    <div class="modal-local-titlebar">
+      <h3 id="modal-local-nombre"></h3>
+      <button type="button" class="add-inline-btn" onclick="agregarExtensionALocal(modalLocalIdx)" title="Añadir extensión">+</button>
+    </div>
+    <div class="modal-code" id="modal-local-codigo"></div>
+    <table class="ext-table" id="modal-local-tabla">
+      <thead><tr><th>Área</th><th>Extensión</th></tr></thead>
+      <tbody id="modal-local-tabla-body"></tbody>
+    </table>
+    <p class="hint">Clic derecho (o mantener presionado 3 seg) sobre una extensión para eliminarla.</p>
+    <button class="modal-close" onclick="cerrarModalLocal()">Cerrar</button>
+  </div>
+</div>
+
+
+<!-- MODAL CODIGO DE BARRAS -->
+<div class="modal-overlay" id="modal-overlay" onclick="cerrarModalSiFondo(event)">
+  <div class="modal-box">
+    <h3 id="modal-desc"></h3>
+    <div class="modal-precio" id="modal-precio"></div>
+    <svg id="modal-barcode"></svg>
+    <div class="modal-code" id="modal-code"></div>
+    <button class="modal-close" onclick="cerrarModal()">Cerrar</button>
+  </div>
+</div>
+
+<!-- MODAL: DETALLE PRODUCTO MES / LIQUIDACION -->
+<div class="modal-overlay modal-top" id="modal-promo-overlay" onclick="cerrarModalPromoSiFondo(event)">
+  <div class="modal-box modal-box-wide" id="promo-detail-box">
+    <div class="promo-detail-photo" id="promo-detail-photo" style="display:none;">
+      <img id="promo-detail-img">
+    </div>
+    <h3 id="promo-detail-desc"></h3>
+    <span class="badge" id="promo-detail-badge"></span>
+    <div class="modal-precio" id="promo-detail-precio"></div>
+    <svg id="promo-detail-barcode"></svg>
+    <div class="modal-code" id="promo-detail-codigo"></div>
+    <div class="hint" id="promo-detail-fin"></div>
+    <div class="promo-detail-obs" id="promo-detail-obs" style="display:none;"></div>
+    <div class="promo-cuotas-box" id="promo-detail-cuotas-box" style="display:none;">
+      <div class="promo-cuotas-title" onclick="togglePromoCuotasBox('promo-detail-cuotas-table-wrap','promo-detail-cuotas-toggle-icon')">
+        <span>💳 Diferido sin intereses</span>
+        <span class="promo-cuotas-toggle-icon" id="promo-detail-cuotas-toggle-icon">▸</span>
+      </div>
+      <div id="promo-detail-cuotas-table-wrap" style="display:none; overflow-x:auto;">
+        <table class="calc-table">
+          <thead><tr><th>Meses</th><th>Cuota</th></tr></thead>
+          <tbody id="promo-detail-cuotas-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <button class="modal-close" onclick="cerrarModalPromo()">Cerrar</button>
+  </div>
+</div>
+
+<script>
+// ---------- Navegación entre pestañas (menú inferior reordenable) ----------
+const NAV_ITEMS = {
+  tab6: { icon:'📄', label:'Foto a PDF' },
+  tab1: { icon:'📍', label:'Locales' },
+  tab2: { icon:'🏷️', label:'Códigos' },
+  tab3: { icon:'🧮', label:'Cuotas' },
+  tab4: { icon:'🏭', label:'Marcas' }
+};
+const NAV_ORDER_KEY = 'rpix_nav_order_v1';
+let navOrder = Object.keys(NAV_ITEMS);
+(function cargarOrdenNav(){
+  try{
+    const guardado = JSON.parse(localStorage.getItem(NAV_ORDER_KEY) || 'null');
+    if(Array.isArray(guardado) && guardado.length && guardado.every(id=> NAV_ITEMS[id])){
+      navOrder = guardado;
+    }
+  }catch(e){}
+})();
+
+function renderNavTabs(activeTab){
+  const cont = document.getElementById('nav-tabs');
+  cont.innerHTML = navOrder.map(id => {
+    const it = NAV_ITEMS[id];
+    const activeClass = (id === activeTab) ? ' active' : '';
+    return `<button class="tab-btn${activeClass}" data-tab="${id}" title="${it.label}">${it.icon}</button>`;
+  }).join('');
+  cont.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> irASeccion(btn.dataset.tab));
+  });
+}
+renderNavTabs(null);
+
+// ---------- Inicio <-> Secciones ----------
+function irASeccion(tabId){
+  document.getElementById('home-screen').style.display='none';
+  document.getElementById('main-content').style.display='block';
+  document.querySelectorAll('#nav-tabs .tab-btn').forEach(b=> b.classList.toggle('active', b.dataset.tab===tabId));
+  document.querySelectorAll('.tab').forEach(t=> t.classList.toggle('active', t.id===tabId));
+}
+function irAInicio(){
+  document.getElementById('home-screen').style.display='block';
+  document.getElementById('main-content').style.display='none';
+  document.querySelectorAll('#nav-tabs .tab-btn').forEach(b=> b.classList.remove('active'));
+  cerrarGearMenu();
+}
+
+// ---------- Mover menú inferior ----------
+let tempNavOrder = [];
+function abrirModalMover(){
+  tempNavOrder = navOrder.slice();
+  renderMoverLista();
+  document.getElementById('modal-mover-overlay').classList.add('active');
+}
+function cerrarModalMover(){
+  document.getElementById('modal-mover-overlay').classList.remove('active');
+}
+function renderMoverLista(){
+  const cont = document.getElementById('mover-lista');
+  cont.innerHTML = tempNavOrder.map((id, i) => {
+    const it = NAV_ITEMS[id];
+    return `
+      <div class="mover-item">
+        <span class="mover-icon">${it.icon}</span>
+        <span class="mover-label">${it.label}</span>
+        <div class="mover-arrows">
+          <button type="button" onclick="moverIcono(${i},-1)" ${i===0?'disabled':''} title="Mover a la izquierda">◀</button>
+          <button type="button" onclick="moverIcono(${i},1)" ${i===tempNavOrder.length-1?'disabled':''} title="Mover a la derecha">▶</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+function moverIcono(i, dir){
+  const j = i + dir;
+  if(j < 0 || j >= tempNavOrder.length) return;
+  [tempNavOrder[i], tempNavOrder[j]] = [tempNavOrder[j], tempNavOrder[i]];
+  renderMoverLista();
+}
+function aplicarOrdenMenu(){
+  navOrder = tempNavOrder.slice();
+  try{ localStorage.setItem(NAV_ORDER_KEY, JSON.stringify(navOrder)); }catch(e){}
+  const activo = document.querySelector('.tab.active');
+  renderNavTabs(activo ? activo.id : null);
+  cerrarModalMover();
+}
+
+// ---------- Menu de configuración (engrane) ----------
+function toggleGearMenu(ev){
+  ev.stopPropagation();
+  document.getElementById('gear-menu').classList.toggle('active');
+}
+function cerrarGearMenu(){
+  document.getElementById('gear-menu').classList.remove('active');
+}
+document.addEventListener('click', cerrarGearMenu);
+function abrirImportarDesdeGear(){
+  cerrarGearMenu();
+  document.getElementById('gear-import-file').click();
+}
+function importarDatosDesdeGear(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  procesarArchivoImportado(file, ()=>{ ev.target.value=''; });
+}
+
+// ---------- Datos en memoria (se reinician al recargar la página) ----------
+let locales = [];
+let codigos = [];
+let marcas = [];
+let talleres = []; // {nombre, telefono, direccion, horario, tipos} - vinculados a marcas por tallerIdx
+let productosPromo = []; // {foto, desc, precio, codigo, tipo:'mes'|'liquidacion', finPromo, obs}
+
+// ---------- MODAL GENERICO: AVISO / CONFIRMACION ----------
+// Reemplaza a alert()/confirm() nativos, que la vista previa puede bloquear.
+function cerrarModalGenerico(){
+  document.getElementById('modal-generico-overlay').classList.remove('active');
+}
+function mostrarAviso(mensaje){
+  document.getElementById('modal-generico-mensaje').textContent = mensaje;
+  const botones = document.getElementById('modal-generico-botones');
+  botones.innerHTML = '';
+  const btn = document.createElement('button');
+  btn.type='button';
+  btn.className = 'action';
+  btn.textContent = 'Entendido';
+  btn.onclick = cerrarModalGenerico;
+  botones.appendChild(btn);
+  document.getElementById('modal-generico-overlay').classList.add('active');
+}
+function confirmarAccion(mensaje, onConfirm){
+  document.getElementById('modal-generico-mensaje').textContent = mensaje;
+  const botones = document.getElementById('modal-generico-botones');
+  botones.innerHTML = '';
+  const cancelar = document.createElement('button');
+  cancelar.type='button';
+  cancelar.className = 'modal-close';
+  cancelar.textContent = 'Cancelar';
+  cancelar.onclick = cerrarModalGenerico;
+  const eliminar = document.createElement('button');
+  eliminar.type='button';
+  eliminar.className = 'action';
+  eliminar.style.background = 'var(--danger-dark)';
+  eliminar.textContent = 'Eliminar';
+  eliminar.onclick = ()=>{ cerrarModalGenerico(); onConfirm(); };
+  botones.appendChild(cancelar);
+  botones.appendChild(eliminar);
+  document.getElementById('modal-generico-overlay').classList.add('active');
+}
+
+// ---------- MENU CONTEXTUAL / MANTENER PRESIONADO (eliminar tarjetas) ----------
+let ctxMenuEl = null;
+function cerrarCtxMenu(){
+  if(ctxMenuEl){ ctxMenuEl.remove(); ctxMenuEl=null; }
+}
+document.addEventListener('click', cerrarCtxMenu);
+document.addEventListener('scroll', cerrarCtxMenu, true);
+
+function mostrarCtxMenu(x, y, onDelete){
+  cerrarCtxMenu();
+  const menu = document.createElement('div');
+  menu.className='ctx-menu';
+  menu.innerHTML = `<button type="button" class="ctx-item">🗑️ Eliminar</button>`;
+  document.body.appendChild(menu);
+  const rect = menu.getBoundingClientRect();
+  let left = x, top = y;
+  if(left + rect.width > window.innerWidth) left = window.innerWidth - rect.width - 8;
+  if(top + rect.height > window.innerHeight) top = window.innerHeight - rect.height - 8;
+  menu.style.left = left+'px';
+  menu.style.top = top+'px';
+  menu.querySelector('.ctx-item').addEventListener('click', (e)=>{
+    e.stopPropagation();
+    cerrarCtxMenu();
+    onDelete();
+  });
+  ctxMenuEl = menu;
+}
+
+// Agrega a una tarjeta la posibilidad de eliminarse con clic derecho o mantener presionado 3s,
+// y opcionalmente un onClick normal (que se ignora si vino de un long-press que ya eliminó/preguntó).
+function habilitarEliminarConGesto(card, etiqueta, onDelete, onClick){
+  card.addEventListener('contextmenu', (e)=>{
+    e.preventDefault();
+    mostrarCtxMenu(e.clientX, e.clientY, onDelete);
+  });
+  let pressTimer=null;
+  let movido=false;
+  let longPress=false;
+  card.addEventListener('touchstart', ()=>{
+    movido=false;
+    longPress=false;
+    pressTimer = setTimeout(()=>{
+      if(!movido){
+        longPress=true;
+        if(navigator.vibrate) navigator.vibrate(40);
+        confirmarAccion(`¿Eliminar "${etiqueta}"?`, onDelete);
+      }
+    }, 3000);
+  }, {passive:true});
+  card.addEventListener('touchmove', ()=>{ movido=true; clearTimeout(pressTimer); }, {passive:true});
+  card.addEventListener('touchend', ()=>{ clearTimeout(pressTimer); });
+  card.addEventListener('touchcancel', ()=>{ clearTimeout(pressTimer); });
+  if(onClick){
+    card.addEventListener('click', (e)=>{
+      if(longPress){ longPress=false; return; }
+      onClick(e);
+    });
+  }
+}
+
+// ---------- TAB 1: LOCALES ----------
+// Cada local: {codigo, nombre, extensiones:[{area, ext}, ...]}  (igual que la tabla de Excel)
+
+function toggleLocForm(){
+  const body = document.getElementById('loc-form-body');
+  const icon = document.getElementById('loc-form-toggle-icon');
+  const abierto = body.style.display !== 'none';
+  body.style.display = abierto ? 'none' : 'block';
+  icon.textContent = abierto ? '＋' : '－';
+}
+
+function agregarFilaExtension(area='', ext=''){
+  const wrap = document.createElement('div');
+  wrap.className = 'ext-row';
+  wrap.innerHTML = `
+    <input type="text" class="ext-area" placeholder="Ej: COCINA" value="${area}">
+    <input type="text" class="ext-num" placeholder="Ej: 6860" value="${ext}">
+    <button type="button" class="ext-row-del" onclick="quitarFilaExt(this)">Quitar</button>
+  `;
+  document.getElementById('loc-ext-rows').appendChild(wrap);
+}
+function quitarFilaExt(btn){
+  confirmarAccion('¿Quitar esta fila?', ()=> btn.parentElement.remove());
+}
+
+function agregarLocal(){
+  const codigo = document.getElementById('loc-codigo').value.trim();
+  const nombre = document.getElementById('loc-nombre').value.trim();
+  if(!codigo || !nombre){ mostrarAviso('Completa el código y el nombre del local.'); return; }
+
+  const extensiones = [];
+  document.querySelectorAll('#loc-ext-rows .ext-row').forEach(f=>{
+    const area = f.querySelector('.ext-area').value.trim();
+    const ext = f.querySelector('.ext-num').value.trim();
+    if(area && ext) extensiones.push({area, ext});
+  });
+  if(extensiones.length===0){ mostrarAviso('Agrega al menos un área con su extensión.'); return; }
+
+  locales.push({codigo, nombre, extensiones});
+  document.getElementById('loc-codigo').value='';
+  document.getElementById('loc-nombre').value='';
+  document.getElementById('loc-ext-rows').innerHTML='';
+  agregarFilaExtension();
+  document.getElementById('loc-form-body').style.display='none';
+  document.getElementById('loc-form-toggle-icon').textContent='＋';
+  renderLocales();
+}
+
+function eliminarLocal(i){
+  locales.splice(i,1);
+  renderLocales();
+}
+
+// ---------- MODAL: AÑADIR EXTENSION A UN LOCAL ----------
+let addExtLocalIdx = null;
+function agregarExtensionALocal(idx){
+  addExtLocalIdx = idx;
+  document.getElementById('add-ext-area').value='';
+  document.getElementById('add-ext-num').value='';
+  document.getElementById('modal-add-ext-overlay').classList.add('active');
+}
+function cerrarModalAddExt(){
+  document.getElementById('modal-add-ext-overlay').classList.remove('active');
+  addExtLocalIdx = null;
+}
+function confirmarAddExt(){
+  const area = document.getElementById('add-ext-area').value.trim();
+  const ext = document.getElementById('add-ext-num').value.trim();
+  if(!area || !ext){ mostrarAviso('Completa el área y la extensión.'); return; }
+  locales[addExtLocalIdx].extensiones.push({area, ext});
+  cerrarModalAddExt();
+  renderLocales();
+  if(modalLocalIdx !== null) renderModalLocal();
+}
+
+function renderLocales(){
+  guardarDatos();
+  const q = document.getElementById('loc-search').value.trim().toLowerCase();
+  const cont = document.getElementById('loc-lista');
+  cont.innerHTML='';
+  const filtrados = locales
+    .map((l,i)=>({...l, idx:i}))
+    .filter(l=>{
+      if(!q) return true;
+      if(l.codigo.toLowerCase().includes(q) || l.nombre.toLowerCase().includes(q)) return true;
+      return l.extensiones.some(e => e.area.toLowerCase().includes(q) || e.ext.toLowerCase().includes(q));
+    });
+  if(filtrados.length===0){
+    cont.innerHTML = '<div class="empty">Sin resultados</div>';
+    return;
+  }
+  filtrados.forEach(l=>{
+    const div = document.createElement('div');
+    div.className='reg-card local-card';
+    const cantidad = l.extensiones.length;
+    div.innerHTML = `
+      <strong>${l.nombre}</strong>
+      <span>Código: ${l.codigo}</span>
+      <span class="hint" style="margin-top:6px;">${cantidad} extensión${cantidad===1?'':'es'} · toca para ver</span>
+    `;
+    cont.appendChild(div);
+    habilitarEliminarConGesto(div, l.nombre, ()=> eliminarLocal(l.idx), ()=> abrirModalLocal(l.idx));
+  });
+}
+
+// ---------- MODAL DETALLE DE LOCAL ----------
+let modalLocalIdx = null;
+function abrirModalLocal(idx){
+  modalLocalIdx = idx;
+  renderModalLocal();
+  document.getElementById('modal-local-overlay').classList.add('active');
+}
+function renderModalLocal(){
+  const l = locales[modalLocalIdx];
+  if(!l){ cerrarModalLocal(); return; }
+  document.getElementById('modal-local-nombre').textContent = l.nombre;
+  document.getElementById('modal-local-codigo').textContent = 'Código: ' + l.codigo;
+  const body = document.getElementById('modal-local-tabla-body');
+  if(l.extensiones.length===0){
+    body.innerHTML = '<tr><td colspan="2" class="empty" style="display:table-cell;">Sin extensiones</td></tr>';
+    return;
+  }
+  body.innerHTML = l.extensiones.map((e,i)=>`
+    <tr data-ext-idx="${i}">
+      <td>${e.area}</td>
+      <td>${e.ext}</td>
+    </tr>
+  `).join('');
+  body.querySelectorAll('tr').forEach(tr=>{
+    const i = parseInt(tr.dataset.extIdx, 10);
+    const e = l.extensiones[i];
+    habilitarEliminarConGesto(tr, `${e.area} (${e.ext})`, ()=> eliminarExtensionDeLocal(modalLocalIdx, i));
+  });
+}
+function eliminarExtensionDeLocal(idxLocal, idxExt){
+  locales[idxLocal].extensiones.splice(idxExt,1);
+  renderModalLocal();
+  renderLocales();
+}
+function cerrarModalLocal(){
+  document.getElementById('modal-local-overlay').classList.remove('active');
+  modalLocalIdx = null;
+}
+function cerrarModalLocalSiFondo(ev){
+  if(ev.target.id === 'modal-local-overlay') cerrarModalLocal();
+}
+
+// ---------- TAB 2: CODIGOS DE BARRAS ----------
+function toggleCodForm(){
+  const body = document.getElementById('cod-form-body');
+  const icon = document.getElementById('cod-form-toggle-icon');
+  const abierto = body.style.display !== 'none';
+  body.style.display = abierto ? 'none' : 'block';
+  icon.textContent = abierto ? '＋' : '－';
+}
+function toggleCodBuscar(){
+  const wrap = document.getElementById('cod-search-wrap');
+  const abierto = wrap.style.display !== 'none';
+  wrap.style.display = abierto ? 'none' : 'block';
+  if(!abierto) document.getElementById('cod-search').focus();
+}
+function agregarCodigo(){
+  const barra = document.getElementById('cod-barra').value.trim();
+  const desc = document.getElementById('cod-desc').value.trim();
+  const pn = parseFloat(document.getElementById('cod-precio-normal').value);
+  const pa = parseFloat(document.getElementById('cod-precio-afiliado').value);
+  if(!barra || !desc || isNaN(pn) || isNaN(pa)){ mostrarAviso('Completa todos los campos del producto.'); return; }
+  codigos.push({barra, desc, pn, pa});
+  document.getElementById('cod-barra').value='';
+  document.getElementById('cod-desc').value='';
+  document.getElementById('cod-precio-normal').value='';
+  document.getElementById('cod-precio-afiliado').value='';
+  document.getElementById('cod-form-body').style.display='none';
+  document.getElementById('cod-form-toggle-icon').textContent='＋';
+  renderCodigos();
+}
+function eliminarCodigo(i){
+  codigos.splice(i,1);
+  renderCodigos();
+}
+function renderCodigos(){
+  guardarDatos();
+  const q = document.getElementById('cod-search').value.trim().toLowerCase();
+  const cont = document.getElementById('cod-lista');
+  cont.innerHTML='';
+  const filtrados = codigos
+    .map((c,i)=>({...c, idx:i}))
+    .filter(c => !q || c.barra.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q));
+  if(filtrados.length===0){
+    cont.innerHTML = '<div class="empty" style="grid-column:1/-1;">Sin resultados</div>';
+    return;
+  }
+  filtrados.forEach(c=>{
+    const div = document.createElement('div');
+    div.className='reg-card';
+    div.innerHTML = `
+      <strong>${c.desc}</strong>
+      <strong class="cod-num">${c.barra}</strong>
+      <span>Normal: $${c.pn.toFixed(2)}</span>
+      <div class="price-afiliado">$${c.pa.toFixed(2)}</div>
+    `;
+    cont.appendChild(div);
+    habilitarEliminarConGesto(div, c.desc, ()=> eliminarCodigo(c.idx), ()=> abrirModal(c.barra, c.desc, c.pa));
+  });
+}
+
+// ---------- MODAL CODIGO DE BARRAS ----------
+function abrirModal(codigo, desc, precioAfiliado){
+  document.getElementById('modal-desc').textContent = desc;
+  document.getElementById('modal-precio').textContent = '$' + precioAfiliado.toFixed(2);
+  document.getElementById('modal-code').textContent = codigo;
+  try{
+    JsBarcode("#modal-barcode", codigo, {
+      format: "CODE128",
+      lineColor: "#2B2B2B",
+      width: 2,
+      height: 70,
+      displayValue: false,
+      background: "transparent"
+    });
+  }catch(e){
+    document.getElementById('modal-barcode').innerHTML = '';
+  }
+  document.getElementById('modal-overlay').classList.add('active');
+}
+function cerrarModal(){
+  document.getElementById('modal-overlay').classList.remove('active');
+}
+function cerrarModalSiFondo(ev){
+  if(ev.target.id === 'modal-overlay') cerrarModal();
+}
+
+// ---------- TAB 3: CALCULADORA ----------
+const PLAZOS_SIN_INTERES = [3,6,9,12,15,18];
+
+function calcularSinIntereses(actualizarSeguroAuto){
+  const precioInput = document.getElementById('calc-precio');
+  const seguroInput = document.getElementById('calc-seguro');
+  const precio = parseFloat(precioInput.value) || 0;
+
+  // Si el precio supera $100, el seguro ST se calcula automáticamente (15% del precio)
+  if(actualizarSeguroAuto && precio > 100){
+    seguroInput.value = (precio * 0.15).toFixed(2);
+  }
+
+  const seguro = parseFloat(seguroInput.value) || 0;
+  const total = precio + seguro;
+  const body = document.getElementById('calc-tabla-si-body');
+  body.innerHTML='';
+  if(precio<=0){
+    body.innerHTML = '<tr><td colspan="4" class="empty" style="display:table-cell;">Ingresa un precio</td></tr>';
+    return;
+  }
+  PLAZOS_SIN_INTERES.forEach(m=>{
+    const cuotaProducto = precio/m;
+    const cuotaSeguro = seguro/m;
+    const cuotaTotal = total/m;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${m} meses</td><td>$${cuotaProducto.toFixed(2)}</td><td>$${cuotaSeguro.toFixed(2)}</td><td>$${cuotaTotal.toFixed(2)}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+document.getElementById('calc-meses-interes').addEventListener('change', function(){
+  document.getElementById('calc-meses-custom-wrap').style.display = this.value==='custom' ? 'block':'none';
+});
+
+function calcularConIntereses(){
+  const precio = parseFloat(document.getElementById('calc-precio').value);
+  const seguro = parseFloat(document.getElementById('calc-seguro').value) || 0;
+  const tasaAnual = parseFloat(document.getElementById('calc-tasa').value);
+  const sel = document.getElementById('calc-meses-interes').value;
+  const meses = sel==='custom'
+    ? parseInt(document.getElementById('calc-meses-custom').value)
+    : parseInt(sel);
+
+  const resBox = document.getElementById('calc-resultado-interes');
+  if(isNaN(precio) || precio<=0 || isNaN(tasaAnual) || isNaN(meses) || meses<=0){
+    resBox.style.display='block';
+    resBox.innerHTML = '<span style="color:var(--danger-dark);">Completa el precio del producto, la tasa anual y el plazo en meses.</span>';
+    return;
+  }
+
+  // El interés aplica solo sobre el precio del producto
+  const tasaMensual = (tasaAnual/100)/12;
+  let cuotaPrecio;
+  if(tasaMensual === 0){
+    cuotaPrecio = precio/meses;
+  } else {
+    cuotaPrecio = precio * (tasaMensual * Math.pow(1+tasaMensual, meses)) / (Math.pow(1+tasaMensual, meses) - 1);
+  }
+
+  // El seguro se reparte sin interés
+  const cuotaSeguro = seguro>0 ? seguro/meses : 0;
+  const cuotaTotal = cuotaPrecio + cuotaSeguro;
+
+  const totalPagadoPrecio = cuotaPrecio*meses;
+  const totalIntereses = totalPagadoPrecio - precio;
+  const totalPagadoGeneral = cuotaTotal*meses;
+
+  resBox.style.display='block';
+  resBox.innerHTML = `
+    <div>Cuota mensual total (${meses} meses, ${tasaAnual}% anual sobre el producto):</div>
+    <div class="big">$${cuotaTotal.toFixed(2)}</div>
+    <div style="margin-top:8px; color:var(--muted);">
+      &nbsp;&nbsp;Cuota producto (con interés): $${cuotaPrecio.toFixed(2)}<br>
+      &nbsp;&nbsp;Cuota seguro ST (sin interés): $${cuotaSeguro.toFixed(2)}<br><br>
+      Total intereses generados: $${totalIntereses.toFixed(2)}<br>
+      Total a pagar: $${totalPagadoGeneral.toFixed(2)}
+    </div>
+  `;
+}
+
+// ---------- TAB 4: MARCAS / TALLERES DE SERVICIO TECNICO ----------
+function toggleMarcaForm(){
+  const body = document.getElementById('marca-form-body');
+  const icon = document.getElementById('marca-form-toggle-icon');
+  const abierto = body.style.display !== 'none';
+  body.style.display = abierto ? 'none' : 'block';
+  icon.textContent = abierto ? '＋' : '－';
+}
+let pendingMarca = null; // marca en espera de datos del taller
+
+function agregarMarca(){
+  const nombre = document.getElementById('marca-nombre').value.trim();
+  const servicio = document.getElementById('marca-servicio').checked;
+  if(!nombre){ mostrarAviso('Ingresa el nombre de la marca.'); return; }
+
+  if(servicio){
+    pendingMarca = { nombre };
+    abrirModalTaller();
+    return;
+  }
+  guardarMarcaFinal(nombre, false, null);
+}
+
+function guardarMarcaFinal(nombre, servicio, tallerIdx){
+  marcas.push({ nombre, servicio, tallerIdx: (servicio && tallerIdx!==undefined && tallerIdx!==null) ? tallerIdx : null });
+  document.getElementById('marca-nombre').value='';
+  document.getElementById('marca-servicio').checked=false;
+  document.getElementById('marca-form-body').style.display='none';
+  document.getElementById('marca-form-toggle-icon').textContent='＋';
+  renderMarcas();
+}
+
+function eliminarMarca(i){
+  marcas.splice(i,1);
+  renderMarcas();
+}
+
+// ---------- MODAL: DATOS DEL TALLER ----------
+function abrirModalTaller(){
+  document.getElementById('taller-nombre').value='';
+  document.getElementById('taller-telefono').value='';
+  document.getElementById('taller-direccion').value='';
+  document.getElementById('taller-horario').value='';
+  document.getElementById('taller-tipos').value='';
+  document.getElementById('taller-info-vinculado').style.display='none';
+  document.getElementById('modal-taller-overlay').classList.add('active');
+}
+function cerrarModalTaller(){
+  document.getElementById('modal-taller-overlay').classList.remove('active');
+  pendingMarca = null;
+}
+function buscarTallerExistente(){
+  const nombre = document.getElementById('taller-nombre').value.trim().toLowerCase();
+  const info = document.getElementById('taller-info-vinculado');
+  if(!nombre){ info.style.display='none'; return; }
+  const idx = talleres.findIndex(t => t.nombre.toLowerCase() === nombre);
+  if(idx === -1){ info.style.display='none'; return; }
+  const t = talleres[idx];
+  document.getElementById('taller-telefono').value = t.telefono || '';
+  document.getElementById('taller-direccion').value = t.direccion || '';
+  document.getElementById('taller-horario').value = t.horario || '';
+  document.getElementById('taller-tipos').value = t.tipos || '';
+  const marcasVinculadas = marcas.filter(m => m.tallerIdx === idx).map(m => m.nombre);
+  document.getElementById('taller-marcas-cubiertas').textContent = marcasVinculadas.length ? marcasVinculadas.join(', ') : '(ninguna todavía)';
+  document.getElementById('taller-tipos-actuales').textContent = t.tipos || '(sin especificar)';
+  info.style.display='block';
+}
+function confirmarTaller(){
+  const nombre = document.getElementById('taller-nombre').value.trim();
+  const telefono = document.getElementById('taller-telefono').value.trim();
+  const direccion = document.getElementById('taller-direccion').value.trim();
+  const horario = document.getElementById('taller-horario').value.trim();
+  const tipos = document.getElementById('taller-tipos').value.trim();
+  if(!nombre){ mostrarAviso('Ingresa el nombre del taller.'); return; }
+  if(!pendingMarca){ cerrarModalTaller(); return; }
+
+  let idx = talleres.findIndex(t => t.nombre.toLowerCase() === nombre.toLowerCase());
+  if(idx === -1){
+    talleres.push({ nombre, telefono, direccion, horario, tipos });
+    idx = talleres.length - 1;
+  } else {
+    talleres[idx] = { nombre, telefono, direccion, horario, tipos };
+  }
+
+  const marcaPendiente = pendingMarca;
+  cerrarModalTaller();
+  guardarMarcaFinal(marcaPendiente.nombre, true, idx);
+}
+
+// ---------- MODAL: DETALLE DE TALLER (solo lectura) ----------
+function abrirModalTallerDetalle(tallerIdx){
+  const t = talleres[tallerIdx];
+  if(!t) return;
+  document.getElementById('td-nombre').textContent = t.nombre;
+  const marcasVinculadas = marcas.filter(m => m.tallerIdx === tallerIdx).map(m => m.nombre);
+  document.getElementById('td-cuerpo').innerHTML = `
+    <tr><td><strong>Marcas que cubre</strong></td><td>${marcasVinculadas.join(', ') || '—'}</td></tr>
+    <tr><td><strong>Tipos de productos</strong></td><td>${t.tipos || '—'}</td></tr>
+    <tr><td><strong>Teléfono</strong></td><td>${t.telefono || '—'}</td></tr>
+    <tr><td><strong>Dirección</strong></td><td>${t.direccion || '—'}</td></tr>
+    <tr><td><strong>Horario</strong></td><td>${t.horario || '—'}</td></tr>
+  `;
+  document.getElementById('modal-taller-detalle-overlay').classList.add('active');
+}
+function cerrarModalTallerDetalle(){
+  document.getElementById('modal-taller-detalle-overlay').classList.remove('active');
+}
+function cerrarModalTallerDetalleSiFondo(ev){
+  if(ev.target.id === 'modal-taller-detalle-overlay') cerrarModalTallerDetalle();
+}
+
+function renderMarcas(){
+  guardarDatos();
+  const q = document.getElementById('marca-search').value.trim().toLowerCase();
+  const cont = document.getElementById('marca-lista');
+  cont.innerHTML='';
+  const filtrados = marcas
+    .map((m,i)=>({...m, idx:i}))
+    .filter(m => !q || m.nombre.toLowerCase().includes(q));
+  if(filtrados.length===0){
+    cont.innerHTML = '<div class="empty" style="grid-column:1/-1;">Sin resultados</div>';
+    return;
+  }
+  filtrados.forEach(m=>{
+    const div = document.createElement('div');
+    div.className='reg-card';
+    const tallerLinea = (m.servicio && m.tallerIdx!==null && talleres[m.tallerIdx])
+      ? `<span class="hint" style="margin-top:6px;">🔧 ${talleres[m.tallerIdx].nombre} · toca para ver</span>`
+      : '';
+    div.innerHTML = `
+      <strong>${m.nombre}</strong>
+      <span class="badge ${m.servicio?'si':'no'}">${m.servicio?'✔ Servicio técnico':'✘ Sin servicio técnico'}</span>
+      ${tallerLinea}
+    `;
+    cont.appendChild(div);
+    const tieneTaller = m.servicio && m.tallerIdx!==null && talleres[m.tallerIdx];
+    habilitarEliminarConGesto(div, m.nombre, ()=> eliminarMarca(m.idx), tieneTaller ? (()=> abrirModalTallerDetalle(m.tallerIdx)) : null);
+  });
+}
+
+// ---------- TAB 7: PRODUCTO MES / LIQUIDACION ----------
+function togglePromoForm(){
+  const body = document.getElementById('promo-form-body');
+  const icon = document.getElementById('promo-form-toggle-icon');
+  const abierto = body.style.display !== 'none';
+  body.style.display = abierto ? 'none' : 'block';
+  icon.textContent = abierto ? '＋' : '－';
+}
+
+let promoTipoActual = 'mes';
+function promoSeleccionarTipo(tipo){
+  promoTipoActual = tipo;
+  document.getElementById('promo-tipo-mes').classList.toggle('active', tipo==='mes');
+  document.getElementById('promo-tipo-liq').classList.toggle('active', tipo==='liquidacion');
+}
+
+let promoFotoActual = ''; // dataURL comprimido de la foto que se está agregando
+
+// Redimensiona/comprime la foto en un canvas antes de guardarla, para que no ocupe
+// demasiado espacio en el almacenamiento local del navegador.
+function promoComprimirImagen(file, callback){
+  const lector = new FileReader();
+  lector.onload = function(e){
+    const img = new Image();
+    img.onload = function(){
+      const maxAncho = 900;
+      let w = img.width, h = img.height;
+      if(w > maxAncho){ h = Math.round(h * (maxAncho / w)); w = maxAncho; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      callback(canvas.toDataURL('image/jpeg', 0.75));
+    };
+    img.onerror = function(){ callback(''); };
+    img.src = e.target.result;
+  };
+  lector.onerror = function(){ callback(''); };
+  lector.readAsDataURL(file);
+}
+
+function promoMostrarFoto(dataUrl){
+  const wrap = document.getElementById('promo-photo-wrap');
+  const img = document.getElementById('promo-photo-preview');
+  if(dataUrl){
+    img.src = dataUrl;
+    img.style.display = 'block';
+    wrap.classList.add('tiene-foto');
+  } else {
+    img.src = '';
+    img.style.display = 'none';
+    wrap.classList.remove('tiene-foto');
+  }
+}
+
+function promoProcesarArchivoFoto(file){
+  if(!file) return;
+  if(!file.type || !file.type.startsWith('image/')){
+    mostrarAviso('Selecciona un archivo de imagen válido.');
+    return;
+  }
+  promoComprimirImagen(file, (dataUrl)=>{
+    if(!dataUrl){ mostrarAviso('No se pudo cargar la foto.'); return; }
+    promoFotoActual = dataUrl;
+    promoMostrarFoto(dataUrl);
+  });
+}
+
+document.getElementById('promo-cameraInput').addEventListener('change', e=>{
+  const f = e.target.files[0];
+  e.target.value = '';
+  promoProcesarArchivoFoto(f);
+});
+document.getElementById('promo-galleryInput').addEventListener('change', e=>{
+  const f = e.target.files[0];
+  e.target.value = '';
+  promoProcesarArchivoFoto(f);
+});
+document.getElementById('promo-photo-removeBtn').addEventListener('click', ()=>{
+  promoFotoActual = '';
+  promoMostrarFoto('');
+});
+
+// Si el precio supera $40, se muestra la vista previa de cuotas sin intereses
+// (mismos plazos que la calculadora: 3, 6, 9, 12, 15 y 18 meses).
+function promoActualizarCuotasPreview(){
+  const precio = parseFloat(document.getElementById('promo-precio').value) || 0;
+  const box = document.getElementById('promo-cuotas-box');
+  const body = document.getElementById('promo-cuotas-body');
+  const wrap = document.getElementById('promo-cuotas-table-wrap');
+  const icon = document.getElementById('promo-cuotas-toggle-icon');
+  if(precio > 40){
+    box.style.display = 'block';
+    body.innerHTML = PLAZOS_SIN_INTERES.map(m=> `<tr><td>${m} meses</td><td>$${(precio/m).toFixed(2)}</td></tr>`).join('');
+    wrap.style.display = 'none';
+    icon.textContent = '▸';
+  } else {
+    box.style.display = 'none';
+    body.innerHTML = '';
+  }
+}
+
+// Minimiza/expande la caja "Diferido sin intereses" (arranca siempre minimizada)
+function togglePromoCuotasBox(wrapId, iconId){
+  const wrap = document.getElementById(wrapId);
+  const icon = document.getElementById(iconId);
+  const abierto = wrap.style.display !== 'none';
+  wrap.style.display = abierto ? 'none' : 'block';
+  icon.textContent = abierto ? '▸' : '▾';
+}
+
+function promoLimpiarFormulario(){
+  document.getElementById('promo-desc').value = '';
+  document.getElementById('promo-precio').value = '';
+  document.getElementById('promo-codigo').value = '';
+  document.getElementById('promo-fin').value = '';
+  document.getElementById('promo-obs').value = '';
+  promoFotoActual = '';
+  promoMostrarFoto('');
+  promoSeleccionarTipo('mes');
+  promoActualizarCuotasPreview();
+  document.getElementById('promo-form-body').style.display = 'none';
+  document.getElementById('promo-form-toggle-icon').textContent = '＋';
+}
+
+function agregarProductoPromo(){
+  const desc = document.getElementById('promo-desc').value.trim();
+  const precio = parseFloat(document.getElementById('promo-precio').value);
+  const codigo = document.getElementById('promo-codigo').value.trim();
+  const finPromo = document.getElementById('promo-fin').value;
+  const obs = document.getElementById('promo-obs').value.trim();
+
+  if(!desc || isNaN(precio) || precio<=0){
+    mostrarAviso('Completa al menos la descripción y el precio del producto.');
+    return;
+  }
+
+  productosPromo.push({
+    foto: promoFotoActual,
+    desc, precio, codigo,
+    tipo: promoTipoActual,
+    finPromo, obs
+  });
+
+  promoLimpiarFormulario();
+  renderProductosPromo();
+}
+
+function eliminarProductoPromo(i){
+  productosPromo.splice(i,1);
+  renderProductosPromo();
+}
+
+function promoFechaFormateada(v){
+  if(!v) return '';
+  const [y,m,d] = v.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// Calcula cuántos días faltan para que termine la promoción y el color del semáforo:
+// más de 5 días = verde, de 3 a 5 días = amarillo, 2 días o menos (o vencida) = rojo.
+function promoInfoTiempo(finPromo){
+  if(!finPromo) return null;
+  const [y,m,d] = finPromo.split('-').map(Number);
+  const fin = new Date(y, m-1, d);
+  fin.setHours(0,0,0,0);
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+  const dias = Math.round((fin - hoy) / 86400000);
+  const vencida = dias < 0;
+  let clase = 'verde';
+  if(dias <= 2) clase = 'rojo';
+  else if(dias <= 5) clase = 'amarillo';
+  return { dias, clase, vencida };
+}
+
+function renderProductosPromo(){
+  guardarDatos();
+  const cont = document.getElementById('promo-lista');
+  cont.innerHTML = '';
+  const filtrados = productosPromo.map((p,i)=>({...p, idx:i}));
+  if(filtrados.length===0){
+    cont.innerHTML = '<div class="empty" style="grid-column:1/-1;">Sin resultados</div>';
+    return;
+  }
+  filtrados.forEach(p=>{
+    const div = document.createElement('div');
+    const info = promoInfoTiempo(p.finPromo);
+    let claseCard = 'reg-card';
+    if(info){
+      claseCard += ` promo-card-${info.clase}`;
+      if(info.vencida) claseCard += ' promo-card-vencida';
+    }
+    div.className = claseCard;
+    const badgeClase = info ? `promo-badge-${info.clase}` : 'promo-badge-neutro';
+    const finLinea = info
+      ? `<span class="promo-tiempo ${info.clase}">⏳ ${info.vencida ? 'Promoción vencida' : `Faltan ${info.dias} día${info.dias===1?'':'s'}`} · Fin: ${promoFechaFormateada(p.finPromo)}</span>`
+      : '';
+    div.innerHTML = `
+      <strong>${p.desc}</strong>
+      <span class="badge ${badgeClase}">${p.tipo==='liquidacion'?'⏳ Producto en Liquidación':'📅 Producto del Mes'}</span>
+      <div class="price-afiliado">$${p.precio.toFixed(2)}</div>
+      ${finLinea}
+    `;
+    cont.appendChild(div);
+    habilitarEliminarConGesto(div, p.desc, ()=> eliminarProductoPromo(p.idx), ()=> abrirModalPromoDetalle(p.idx));
+  });
+}
+
+// ---------- MODAL: DETALLE PRODUCTO MES / LIQUIDACION ----------
+function abrirModalPromoDetalle(idx){
+  const p = productosPromo[idx];
+  if(!p) return;
+
+  const fotoWrap = document.getElementById('promo-detail-photo');
+  const fotoImg = document.getElementById('promo-detail-img');
+  if(p.foto){
+    fotoImg.src = p.foto;
+    fotoWrap.style.display = 'flex';
+  } else {
+    fotoWrap.style.display = 'none';
+  }
+
+  document.getElementById('promo-detail-desc').textContent = p.desc;
+  const infoBadge = promoInfoTiempo(p.finPromo);
+  const badge = document.getElementById('promo-detail-badge');
+  badge.className = 'badge ' + (infoBadge ? `promo-badge-${infoBadge.clase}` : 'promo-badge-neutro');
+  badge.textContent = p.tipo==='liquidacion' ? '⏳ Producto en Liquidación' : '📅 Producto del Mes';
+  document.getElementById('promo-detail-precio').textContent = '$' + p.precio.toFixed(2);
+
+  const barcodeEl = document.getElementById('promo-detail-barcode');
+  const codigoEl = document.getElementById('promo-detail-codigo');
+  if(p.codigo){
+    try{
+      JsBarcode(barcodeEl, p.codigo, {
+        format: "CODE128",
+        lineColor: "#2B2B2B",
+        width: 2,
+        height: 70,
+        displayValue: false,
+        background: "transparent"
+      });
+      barcodeEl.style.display = 'block';
+    }catch(e){
+      barcodeEl.innerHTML = '';
+      barcodeEl.style.display = 'none';
+    }
+    codigoEl.textContent = p.codigo;
+    codigoEl.style.display = 'block';
+  } else {
+    barcodeEl.innerHTML = '';
+    barcodeEl.style.display = 'none';
+    codigoEl.style.display = 'none';
+  }
+
+  const finEl = document.getElementById('promo-detail-fin');
+  const infoDetalle = promoInfoTiempo(p.finPromo);
+  const cajaDetalle = document.getElementById('promo-detail-box');
+  cajaDetalle.classList.remove('promo-modal-verde','promo-modal-amarillo','promo-modal-rojo','promo-modal-vencida');
+  if(infoDetalle){
+    cajaDetalle.classList.add('promo-modal-' + infoDetalle.clase);
+    if(infoDetalle.vencida) cajaDetalle.classList.add('promo-modal-vencida');
+    finEl.innerHTML = `<span class="promo-tiempo ${infoDetalle.clase}">⏳ ${infoDetalle.vencida ? 'Promoción vencida' : `Faltan ${infoDetalle.dias} día${infoDetalle.dias===1?'':'s'}`} · Fin: ${promoFechaFormateada(p.finPromo)}</span>`;
+  } else {
+    finEl.innerHTML = '';
+  }
+
+  const obsEl = document.getElementById('promo-detail-obs');
+  if(p.obs){
+    obsEl.textContent = p.obs;
+    obsEl.style.display = 'block';
+  } else {
+    obsEl.style.display = 'none';
+  }
+
+  const cuotasBox = document.getElementById('promo-detail-cuotas-box');
+  const cuotasBody = document.getElementById('promo-detail-cuotas-body');
+  const cuotasWrap = document.getElementById('promo-detail-cuotas-table-wrap');
+  const cuotasIcon = document.getElementById('promo-detail-cuotas-toggle-icon');
+  if(p.precio > 40){
+    cuotasBody.innerHTML = PLAZOS_SIN_INTERES.map(m=> `<tr><td>${m} meses</td><td>$${(p.precio/m).toFixed(2)}</td></tr>`).join('');
+    cuotasBox.style.display = 'block';
+    cuotasWrap.style.display = 'none';
+    cuotasIcon.textContent = '▸';
+  } else {
+    cuotasBox.style.display = 'none';
+  }
+
+  document.getElementById('modal-promo-overlay').classList.add('active');
+}
+function cerrarModalPromo(){
+  document.getElementById('modal-promo-overlay').classList.remove('active');
+}
+function cerrarModalPromoSiFondo(ev){
+  if(ev.target.id === 'modal-promo-overlay') cerrarModalPromo();
+}
+
+// ---------- TAB 5: EXPORTAR / IMPORTAR DATOS ----------
+function descargarJSON(objeto, nombreArchivo){
+  const blob = new Blob([JSON.stringify(objeto, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombreArchivo;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function exportarDatos(){
+  const fecha = new Date().toISOString().slice(0,10);
+  descargarJSON({ locales, codigos, marcas, talleres, productosPromo, exportado: new Date().toISOString() }, `r-pix_datos_${fecha}.json`);
+}
+function exportarLocales(){
+  const fecha = new Date().toISOString().slice(0,10);
+  descargarJSON({ locales, exportado: new Date().toISOString() }, `r-pix_locales_${fecha}.json`);
+}
+function exportarCodigos(){
+  const fecha = new Date().toISOString().slice(0,10);
+  descargarJSON({ codigos, exportado: new Date().toISOString() }, `r-pix_codigos_${fecha}.json`);
+}
+function exportarMarcas(){
+  const fecha = new Date().toISOString().slice(0,10);
+  descargarJSON({ marcas, talleres, exportado: new Date().toISOString() }, `r-pix_marcas_${fecha}.json`);
+}
+function exportarProductosPromo(){
+  const fecha = new Date().toISOString().slice(0,10);
+  descargarJSON({ productosPromo, exportado: new Date().toISOString() }, `r-pix_promociones_${fecha}.json`);
+}
+
+// ---------- Exportar a Excel (.xlsx) ----------
+function exportarExcel(){
+  if(typeof XLSX === 'undefined'){
+    mostrarAviso('No se pudo cargar el módulo de Excel. Verifica tu conexión a internet e inténtalo de nuevo.');
+    return;
+  }
+  const wb = XLSX.utils.book_new();
+
+  // Hoja Locales (una fila por cada área/extensión)
+  const filasLocales = [];
+  locales.forEach(l=>{
+    if(l.extensiones.length===0){
+      filasLocales.push({ Local: l.nombre, 'Código local': l.codigo, 'Área': '', 'Extensión': '' });
+    } else {
+      l.extensiones.forEach(e=>{
+        filasLocales.push({ Local: l.nombre, 'Código local': l.codigo, 'Área': e.area, 'Extensión': e.ext });
+      });
+    }
+  });
+  const wsLocales = XLSX.utils.json_to_sheet(filasLocales.length ? filasLocales : [{ Local:'', 'Código local':'', 'Área':'', 'Extensión':'' }]);
+  XLSX.utils.book_append_sheet(wb, wsLocales, 'Locales');
+
+  // Hoja Códigos
+  const filasCodigos = codigos.map(c=>({
+    'Código de barras': c.barra,
+    'Descripción': c.desc,
+    'Precio normal': c.pn,
+    'Precio afiliado': c.pa
+  }));
+  const wsCodigos = XLSX.utils.json_to_sheet(filasCodigos.length ? filasCodigos : [{ 'Código de barras':'', 'Descripción':'', 'Precio normal':'', 'Precio afiliado':'' }]);
+  XLSX.utils.book_append_sheet(wb, wsCodigos, 'Codigos');
+
+  // Hoja Marcas
+  const filasMarcas = marcas.map(m=>{
+    const t = (m.servicio && m.tallerIdx!==null) ? talleres[m.tallerIdx] : null;
+    return {
+      'Marca': m.nombre,
+      'Servicio técnico': m.servicio ? 'Sí' : 'No',
+      'Taller': t ? t.nombre : '',
+      'Teléfono taller': t ? t.telefono : '',
+      'Dirección taller': t ? t.direccion : '',
+      'Horario taller': t ? t.horario : '',
+      'Tipos de productos': t ? t.tipos : ''
+    };
+  });
+  const wsMarcas = XLSX.utils.json_to_sheet(filasMarcas.length ? filasMarcas : [{ 'Marca':'', 'Servicio técnico':'', 'Taller':'', 'Teléfono taller':'', 'Dirección taller':'', 'Horario taller':'', 'Tipos de productos':'' }]);
+  XLSX.utils.book_append_sheet(wb, wsMarcas, 'Marcas');
+
+  const fecha = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `r-pix_datos_${fecha}.xlsx`);
+}
+
+function procesarArchivoImportado(file, onDone){
+  const reader = new FileReader();
+  reader.onload = function(e){
+    let data;
+    try{
+      data = JSON.parse(e.target.result);
+    }catch(err){
+      mostrarAviso('El archivo no es un JSON válido.');
+      return;
+    }
+    const tieneLocales = Array.isArray(data.locales);
+    const tieneCodigos = Array.isArray(data.codigos);
+    const tieneMarcas = Array.isArray(data.marcas);
+    const tieneTalleres = Array.isArray(data.talleres);
+    const tieneProductosPromo = Array.isArray(data.productosPromo);
+    if(!tieneLocales && !tieneCodigos && !tieneMarcas && !tieneTalleres && !tieneProductosPromo){
+      mostrarAviso('El archivo no tiene el formato esperado (locales, codigos, marcas, talleres o productosPromo).');
+      return;
+    }
+    const partes = [];
+    if(tieneLocales) partes.push('Locales');
+    if(tieneCodigos) partes.push('Códigos');
+    if(tieneMarcas) partes.push('Marcas');
+    if(tieneTalleres) partes.push('Talleres');
+    if(tieneProductosPromo) partes.push('Mes/Liquidación');
+    confirmarAccion(`Esto reemplazará: ${partes.join(', ')}. ¿Continuar?`, ()=>{
+      if(tieneLocales) locales = data.locales;
+      if(tieneCodigos) codigos = data.codigos;
+      if(tieneMarcas) marcas = data.marcas;
+      if(tieneTalleres) talleres = data.talleres;
+      if(tieneProductosPromo) productosPromo = data.productosPromo;
+      renderLocales();
+      renderCodigos();
+      renderMarcas();
+      renderProductosPromo();
+      mostrarAviso('Datos importados correctamente.');
+      if(onDone) onDone();
+    });
+  };
+  reader.readAsText(file);
+}
+
+function importarDatos(){
+  const input = document.getElementById('import-file');
+  const file = input.files[0];
+  if(!file){ mostrarAviso('Selecciona primero un archivo .json.'); return; }
+  procesarArchivoImportado(file, ()=>{ input.value=''; });
+}
+
+// ---------- TAB 6: FOTO A PDF ----------
+(function(){
+  const $ = id => document.getElementById(id);
+  let fpdfPhotos = [];
+  let fpdfEditingIndex = -1;
+
+  function fpdfEsImagen(f){
+    if(f.type && f.type.startsWith('image/')) return true;
+    // Algunos celulares no envían el tipo MIME correcto para formatos menos comunes;
+    // en ese caso revisamos la extensión del archivo.
+    return /\.(heic|heif|webp|bmp|tiff?|gif|avif|png|jpe?g)$/i.test(f.name || '');
+  }
+  function fpdfEsHeic(f){
+    const tipo = (f.type || '').toLowerCase();
+    if(tipo === 'image/heic' || tipo === 'image/heif') return true;
+    return /\.(heic|heif)$/i.test(f.name || '');
+  }
+
+  async function fpdfProcesarArchivos(archivos){
+    const candidatos = archivos.filter(fpdfEsImagen);
+    if(!candidatos.length){
+      if(archivos.length) mostrarAviso('No se detectaron imágenes válidas en la selección.');
+      return;
+    }
+    $('fpdf-status').textContent = 'Cargando imágenes…';
+    let fallidas = 0;
+    for(const original of candidatos){
+      let file = original;
+      if(fpdfEsHeic(original)){
+        try{
+          $('fpdf-status').textContent = 'Convirtiendo foto HEIC/HEIF…';
+          const salida = await heic2any({ blob: original, toType:'image/jpeg', quality:0.9 });
+          const blob = Array.isArray(salida) ? salida[0] : salida;
+          const nuevoNombre = (original.name || 'foto').replace(/\.(heic|heif)$/i, '') + '.jpg';
+          file = new File([blob], nuevoNombre, { type:'image/jpeg' });
+        }catch(err){
+          console.error('No se pudo convertir HEIC/HEIF:', original.name, err);
+          fallidas++;
+          continue;
+        }
+      }
+      fpdfPhotos.push({
+        file, rotation:0, brightness:100, contrast:100, saturation:100, sharpness:0,
+        crop:{l:0,r:0,t:0,b:0}
+      });
+    }
+    $('fpdf-status').textContent = fallidas
+      ? `Se agregaron las fotos, pero ${fallidas} no se pudieron convertir.`
+      : '';
+    fpdfRender();
+  }
+
+  $('fpdf-cameraInput').addEventListener('change', e=>{
+    const archivos = [...e.target.files];
+    e.target.value = '';
+    fpdfProcesarArchivos(archivos);
+  });
+  $('fpdf-galleryInput').addEventListener('change', e=>{
+    const archivos = [...e.target.files];
+    e.target.value = '';
+    fpdfProcesarArchivos(archivos);
+  });
+
+  function fpdfRender(){
+    const g = $('fpdf-grid');
+    g.innerHTML = '';
+    $('fpdf-empty').style.display = fpdfPhotos.length ? 'none' : 'block';
+    $('fpdf-pdfBtn').disabled = !fpdfPhotos.length;
+    $('fpdf-clearBtn').disabled = !fpdfPhotos.length;
+    fpdfPhotos.forEach((p, i)=>{
+      const c = document.createElement('div');
+      c.className = 'fpdf-photo';
+      const url = URL.createObjectURL(p.file);
+      const filter = `brightness(${p.brightness}%) contrast(${p.contrast}%) saturate(${p.saturation}%)`;
+      c.innerHTML = `
+        <div class="fpdf-preview">
+          <img src="${url}" style="transform:rotate(${p.rotation}deg);filter:${filter}">
+          <div class="fpdf-number">${i+1}</div>
+          <button type="button" class="fpdf-remove">✕</button>
+        </div>
+        <div class="fpdf-edit-tip">Mantén presionada la foto para editarla (brillo, recorte, etc.)</div>
+        <div class="fpdf-controls">
+          <button type="button" data-a="left">↶ Girar izquierda</button>
+          <button type="button" data-a="right">↷ Girar derecha</button>
+          <button type="button" data-a="up" ${i===0?'disabled':''}>↑ Mover arriba</button>
+          <button type="button" data-a="down" ${i===fpdfPhotos.length-1?'disabled':''}>↓ Mover abajo</button>
+          <button type="button" class="fpdf-reset" data-a="reset">⟳ Restablecer giro</button>
+        </div>`;
+      c.querySelector('.fpdf-remove').onclick = ()=>{ fpdfPhotos.splice(i,1); fpdfRender(); };
+      c.querySelector('[data-a="left"]').onclick = ()=>{ p.rotation=(p.rotation+270)%360; fpdfRender(); };
+      c.querySelector('[data-a="right"]').onclick = ()=>{ p.rotation=(p.rotation+90)%360; fpdfRender(); };
+      c.querySelector('[data-a="up"]').onclick = ()=>{ [fpdfPhotos[i-1], fpdfPhotos[i]] = [fpdfPhotos[i], fpdfPhotos[i-1]]; fpdfRender(); };
+      c.querySelector('[data-a="down"]').onclick = ()=>{ [fpdfPhotos[i+1], fpdfPhotos[i]] = [fpdfPhotos[i], fpdfPhotos[i+1]]; fpdfRender(); };
+      c.querySelector('[data-a="reset"]').onclick = ()=>{ p.rotation=0; fpdfRender(); };
+      let timer;
+      const prev = c.querySelector('.fpdf-preview');
+      prev.addEventListener('pointerdown', ()=>{ timer = setTimeout(()=> fpdfOpenEditor(i), 650); });
+      ['pointerup','pointercancel','pointerleave'].forEach(ev=> prev.addEventListener(ev, ()=> clearTimeout(timer)));
+      prev.addEventListener('contextmenu', e=> e.preventDefault());
+      g.appendChild(c);
+    });
+  }
+
+  $('fpdf-clearBtn').onclick = ()=>{ fpdfPhotos = []; fpdfRender(); $('fpdf-status').textContent=''; };
+
+  function fpdfOpenEditor(i){
+    fpdfEditingIndex = i;
+    const p = fpdfPhotos[i];
+    $('fpdf-editorOverlay').classList.add('active');
+    $('fpdf-brightness').value = p.brightness;
+    $('fpdf-contrast').value = p.contrast;
+    $('fpdf-saturation').value = p.saturation;
+    $('fpdf-sharpness').value = p.sharpness;
+    $('fpdf-cropL').value = p.crop.l;
+    $('fpdf-cropR').value = p.crop.r;
+    $('fpdf-cropT').value = p.crop.t;
+    $('fpdf-cropB').value = p.crop.b;
+    fpdfUpdateEditor();
+  }
+  function fpdfUpdateEditor(){
+    const p = fpdfPhotos[fpdfEditingIndex];
+    if(!p) return;
+    $('fpdf-vBrightness').textContent = p.brightness + '%';
+    $('fpdf-vContrast').textContent = p.contrast + '%';
+    $('fpdf-vSaturation').textContent = p.saturation + '%';
+    $('fpdf-vSharpness').textContent = p.sharpness;
+    const old = $('fpdf-editorImg').dataset.url;
+    if(old) URL.revokeObjectURL(old);
+    const u = URL.createObjectURL(p.file);
+    $('fpdf-editorImg').dataset.url = u;
+    $('fpdf-editorImg').src = u;
+    $('fpdf-editorImg').style.transform = `rotate(${p.rotation}deg)`;
+    $('fpdf-editorImg').style.filter = `brightness(${p.brightness}%) contrast(${p.contrast}%) saturate(${p.saturation}%)`;
+  }
+  ['fpdf-brightness','fpdf-contrast','fpdf-saturation','fpdf-sharpness','fpdf-cropL','fpdf-cropR','fpdf-cropT','fpdf-cropB'].forEach(id=>{
+    $(id).addEventListener('input', ()=>{
+      const p = fpdfPhotos[fpdfEditingIndex];
+      if(!p) return;
+      p.brightness = +$('fpdf-brightness').value;
+      p.contrast = +$('fpdf-contrast').value;
+      p.saturation = +$('fpdf-saturation').value;
+      p.sharpness = +$('fpdf-sharpness').value;
+      p.crop = { l:+$('fpdf-cropL').value, r:+$('fpdf-cropR').value, t:+$('fpdf-cropT').value, b:+$('fpdf-cropB').value };
+      fpdfUpdateEditor();
+    });
+  });
+  $('fpdf-resetEdit').onclick = ()=>{
+    const p = fpdfPhotos[fpdfEditingIndex];
+    Object.assign(p, { brightness:100, contrast:100, saturation:100, sharpness:0, crop:{l:0,r:0,t:0,b:0} });
+    $('fpdf-brightness').value = 100;
+    $('fpdf-contrast').value = 100;
+    $('fpdf-saturation').value = 100;
+    $('fpdf-sharpness').value = 0;
+    $('fpdf-cropL').value = $('fpdf-cropR').value = $('fpdf-cropT').value = $('fpdf-cropB').value = 0;
+    fpdfUpdateEditor();
+  };
+  $('fpdf-saveEdit').onclick = ()=>{ $('fpdf-editorOverlay').classList.remove('active'); fpdfRender(); };
+  $('fpdf-closeEditor').onclick = ()=>{ $('fpdf-editorOverlay').classList.remove('active'); };
+  $('fpdf-editorOverlay').addEventListener('click', e=>{ if(e.target === $('fpdf-editorOverlay')) $('fpdf-editorOverlay').classList.remove('active'); });
+
+  function fpdfLoadImg(file){
+    return new Promise((res, rej)=>{
+      const r = new FileReader();
+      r.onload = ()=>{ const im = new Image(); im.onload = ()=> res(im); im.onerror = rej; im.src = r.result; };
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+  }
+  function fpdfSharpen(ctx, amount){
+    if(amount <= 0) return;
+    const w = ctx.canvas.width, h = ctx.canvas.height;
+    if(w < 3 || h < 3) return;
+    const src = ctx.getImageData(0,0,w,h), out = ctx.createImageData(w,h);
+    const s = src.data, d = out.data, a = Math.min(1, amount*.25);
+    for(let y=1; y<h-1; y++){
+      for(let x=1; x<w-1; x++){
+        let i = (y*w+x)*4;
+        for(let ch=0; ch<3; ch++){
+          let v = s[i+ch]*(1+4*a) - a*(s[i-4+ch]+s[i+4+ch]+s[i-w*4+ch]+s[i+w*4+ch]);
+          d[i+ch] = Math.max(0, Math.min(255, v));
+        }
+        d[i+3] = s[i+3];
+      }
+    }
+    ctx.putImageData(out, 0, 0);
+  }
+  function fpdfMakeCanvas(img, p){
+    const rot = ((p.rotation % 360) + 360) % 360;
+    const rad = rot * Math.PI / 180;
+    const swap = rot === 90 || rot === 270;
+    const base = document.createElement('canvas');
+    base.width = swap ? img.height : img.width;
+    base.height = swap ? img.width : img.height;
+    const b = base.getContext('2d');
+    b.translate(base.width/2, base.height/2);
+    b.rotate(rad);
+    b.drawImage(img, -img.width/2, -img.height/2);
+    const l = Math.floor(base.width * Math.min(49, Math.max(0, p.crop.l)) / 100);
+    const r = Math.floor(base.width * Math.min(49, Math.max(0, p.crop.r)) / 100);
+    const t = Math.floor(base.height * Math.min(49, Math.max(0, p.crop.t)) / 100);
+    const bt = Math.floor(base.height * Math.min(49, Math.max(0, p.crop.b)) / 100);
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, base.width - l - r);
+    c.height = Math.max(1, base.height - t - bt);
+    const ctx = c.getContext('2d');
+    ctx.filter = `brightness(${p.brightness}%) contrast(${p.contrast}%) saturate(${p.saturation}%)`;
+    ctx.drawImage(base, l, t, c.width, c.height, 0, 0, c.width, c.height);
+    ctx.filter = 'none';
+    fpdfSharpen(ctx, p.sharpness);
+    return c;
+  }
+
+  // Construye el PDF a partir de las fotos actuales y devuelve el objeto jsPDF (sin guardarlo aún).
+  async function fpdfConstruirPDF(){
+    const { jsPDF } = window.jspdf;
+    const first = await fpdfLoadImg(fpdfPhotos[0].file);
+    const sel = $('fpdf-orientation').value;
+    const fo = sel === 'auto' ? (first.width >= first.height ? 'landscape' : 'portrait') : sel;
+    const pdf = new jsPDF({ orientation: fo, unit:'mm', format: $('fpdf-pageSize').value, compress:true });
+    for(let i=0; i<fpdfPhotos.length; i++){
+      $('fpdf-status').textContent = `Procesando ${i+1} de ${fpdfPhotos.length}…`;
+      if(i>0) pdf.addPage($('fpdf-pageSize').value, fo);
+      const img = i===0 ? first : await fpdfLoadImg(fpdfPhotos[i].file);
+      const can = fpdfMakeCanvas(img, fpdfPhotos[i]);
+      const data = can.toDataURL('image/jpeg', .9);
+      const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
+      const m = 8;
+      const ratio = Math.min((pw-2*m)/can.width, (ph-2*m)/can.height);
+      const w = can.width*ratio, h = can.height*ratio;
+      pdf.addImage(data, 'JPEG', (pw-w)/2, (ph-h)/2, w, h, undefined, 'FAST');
+    }
+    return pdf;
+  }
+  function fpdfNombreArchivo(){
+    let name = $('fpdf-filename').value.trim().replace(/[\\/:*?"<>|]+/g,'-') || 'Convenio de Entrega a Domicilio TIPTI';
+    if(!/\.pdf$/i.test(name)) name += '.pdf';
+    return name;
+  }
+
+  $('fpdf-pdfBtn').onclick = async ()=>{
+    if(!fpdfPhotos.length) return;
+    $('fpdf-pdfBtn').disabled = true;
+    $('fpdf-status').textContent = 'Preparando PDF…';
+    try{
+      const pdf = await fpdfConstruirPDF();
+      pdf.save(fpdfNombreArchivo());
+      $('fpdf-status').textContent = '✓ PDF creado correctamente.';
+    }catch(e){
+      console.error(e);
+      $('fpdf-status').textContent = 'No se pudo crear el PDF.';
+    }finally{
+      $('fpdf-pdfBtn').disabled = !fpdfPhotos.length;
+    }
+  };
+
+  // ---------- Envío por WhatsApp con los 4 formatos de entrega ----------
+  function fpdfPad2(n){ return String(n).padStart(2,'0'); }
+
+  const waTipos = {
+    sispe:{
+      campos:['fecha','convenio','reserva'],
+      labelFecha:'Fecha de Entrega',
+      construir:(d)=> [
+        `Entrega Tipo: Sispe`,
+        `Fecha de Entrega: ${d.fecha}`,
+        `Convenio:${d.convenio}`,
+        `Sispe/Reserva:${d.reserva}`
+      ].join('\n')
+    },
+    local:{
+      campos:['fecha','convenio'],
+      labelFecha:'Fecha de Entrega',
+      construir:(d)=> [
+        `Entrega Tipo: Local`,
+        `Fecha de Entrega: ${d.fecha}`,
+        `Convenio:${d.convenio}`
+      ].join('\n')
+    },
+    anulacion:{
+      campos:['tipoEntrega','fecha','convenio','reserva'],
+      labelFecha:'Fecha de Entrega que se anula',
+      construir:(d)=>{
+        const l = [
+          `Entrega Tipo: ${d.tipoEntrega}`,
+          `Fecha de Entrega que se anula: ${d.fecha}`,
+          `Convenio:${d.convenio}`
+        ];
+        if(d.tipoEntrega === 'Sispe') l.push(`Sispe/Reserva:${d.reserva}`);
+        return l.join('\n');
+      }
+    },
+    reagendar:{
+      campos:['tipoEntrega','fecha','convenio','reserva'],
+      labelFecha:'Nueva Fecha de entrega',
+      construir:(d)=>{
+        const l = [
+          `Se Reagenda la Entrega: ${d.tipoEntrega}`,
+          `Nueva Fecha de entrega: ${d.fecha}`,
+          `Convenio:${d.convenio}`
+        ];
+        if(d.tipoEntrega === 'Sispe') l.push(`Sispe/Reserva:${d.reserva}`);
+        return l.join('\n');
+      }
+    }
+  };
+  let waTipoActual = 'sispe';
+
+  function waFechaFormateada(){
+    const v = $('wa-fecha').value; // yyyy-mm-dd
+    if(!v) return '';
+    const [y,m,d] = v.split('-');
+    return `${fpdfPad2(d)}/${fpdfPad2(m)}/${y}`;
+  }
+  function waDatosActuales(){
+    return {
+      tipoEntrega: $('wa-tipoEntrega').value,
+      fecha: waFechaFormateada(),
+      convenio: $('wa-convenio').value.trim(),
+      reserva: $('wa-reserva').value.trim()
+    };
+  }
+  function waMostrarReserva(){
+    const cfg = waTipos[waTipoActual];
+    if(!cfg.campos.includes('reserva')) return false;
+    if(!cfg.campos.includes('tipoEntrega')) return true;
+    return $('wa-tipoEntrega').value === 'Sispe';
+  }
+  function waActualizarCampos(){
+    const cfg = waTipos[waTipoActual];
+    $('wa-field-tipoEntrega').style.display = cfg.campos.includes('tipoEntrega') ? 'block' : 'none';
+    $('wa-label-fecha').textContent = cfg.labelFecha;
+    $('wa-field-reserva').style.display = waMostrarReserva() ? 'block' : 'none';
+    $('wa-preview').textContent = cfg.construir(waDatosActuales());
+  }
+
+  document.querySelectorAll('.wa-type-btn').forEach(btn=>{
+    btn.onclick = ()=>{
+      document.querySelectorAll('.wa-type-btn').forEach(b=> b.classList.remove('active'));
+      btn.classList.add('active');
+      waTipoActual = btn.dataset.tipo;
+      waActualizarCampos();
+    };
+  });
+  ['wa-tipoEntrega','wa-fecha','wa-convenio','wa-reserva'].forEach(id=>{
+    $(id).addEventListener('input', waActualizarCampos);
+    $(id).addEventListener('change', waActualizarCampos);
+  });
+
+  $('fpdf-waOpenBtn').onclick = ()=>{
+    if(!fpdfPhotos.length){
+      mostrarAviso('Primero agrega al menos una foto para poder crear y enviar el PDF.');
+      return;
+    }
+    $('wa-status').textContent = '';
+    $('wa-fecha').value = new Date().toISOString().slice(0,10);
+    $('wa-convenio').value = '';
+    $('wa-reserva').value = '';
+    $('wa-tipoEntrega').value = 'Sispe';
+    waTipoActual = 'sispe';
+    document.querySelectorAll('.wa-type-btn').forEach(b=> b.classList.toggle('active', b.dataset.tipo==='sispe'));
+    waActualizarCampos();
+    $('fpdf-waOverlay').classList.add('active');
+  };
+  $('wa-cancelBtn').onclick = ()=> $('fpdf-waOverlay').classList.remove('active');
+  $('fpdf-waOverlay').addEventListener('click', e=>{ if(e.target === $('fpdf-waOverlay')) $('fpdf-waOverlay').classList.remove('active'); });
+
+  function waMostrarInstrucciones(mensaje, nombre, compartioArchivo){
+    let texto = compartioArchivo
+      ? `El PDF "${nombre}" ya se envió a compartir. `
+      : `El PDF "${nombre}" se descargó. `;
+    texto += 'El mensaje ya se copió al portapapeles. Para que el PDF y el mensaje lleguen juntos, en UN SOLO mensaje de WhatsApp: abre el chat, toca el clip 📎 y elige ese PDF, y ANTES de enviarlo pega el mensaje en el cuadro de texto (mantén presionado el cuadro → Pegar). Así se envían juntos, como pie de foto del documento.';
+    document.getElementById('modal-generico-mensaje').textContent = texto;
+    const botones = document.getElementById('modal-generico-botones');
+    botones.innerHTML = '';
+    const cerrar = document.createElement('button');
+    cerrar.type = 'button';
+    cerrar.className = 'modal-close';
+    cerrar.textContent = 'Entendido';
+    cerrar.onclick = cerrarModalGenerico;
+    const abrir = document.createElement('button');
+    abrir.type = 'button';
+    abrir.className = 'action';
+    abrir.textContent = 'Abrir WhatsApp';
+    abrir.onclick = ()=>{
+      cerrarModalGenerico();
+      window.open('https://wa.me/', '_blank');
+    };
+    botones.appendChild(cerrar);
+    botones.appendChild(abrir);
+    document.getElementById('modal-generico-overlay').classList.add('active');
+  }
+
+  $('wa-sendBtn').onclick = async ()=>{
+    const d = waDatosActuales();
+    const faltaReserva = waMostrarReserva() && !d.reserva;
+    if(!d.fecha || !d.convenio || faltaReserva){
+      mostrarAviso('Completa todos los campos antes de enviar.');
+      return;
+    }
+    const mensaje = waTipos[waTipoActual].construir(d);
+    $('wa-sendBtn').disabled = true;
+    $('wa-status').textContent = 'Generando PDF…';
+    try{
+      const pdf = await fpdfConstruirPDF();
+      const nombre = fpdfNombreArchivo();
+      const blob = pdf.output('blob');
+      const archivo = new File([blob], nombre, { type:'application/pdf' });
+
+      // Copiamos el mensaje al portapapeles: WhatsApp no siempre lo agrega como
+      // descripción automática cuando se comparte un PDF, así que queda listo para pegar
+      // y enviarlo junto con el PDF en un solo mensaje (pie de foto del documento).
+      try{ await navigator.clipboard.writeText(mensaje); }catch(err){ /* portapapeles no disponible */ }
+
+      let compartioArchivo = false;
+      if(navigator.canShare && navigator.canShare({ files:[archivo] })){
+        $('wa-status').textContent = 'Abriendo para compartir el PDF…';
+        try{
+          await navigator.share({ files:[archivo], text: mensaje, title: nombre });
+          compartioArchivo = true;
+        }catch(shareErr){
+          if(shareErr && shareErr.name === 'AbortError'){
+            $('wa-status').textContent = 'Envío cancelado.';
+            return;
+          }
+          pdf.save(nombre);
+        }
+      } else {
+        pdf.save(nombre);
+      }
+
+      $('fpdf-waOverlay').classList.remove('active');
+      waMostrarInstrucciones(mensaje, nombre, compartioArchivo);
+    }catch(e){
+      console.error(e);
+      $('wa-status').textContent = 'No se pudo preparar el envío.';
+    }finally{
+      $('wa-sendBtn').disabled = false;
+    }
+  };
+
+  fpdfRender();
+})();
+
+
+// Guarda todo cada vez que se renderiza una lista (es decir, cada vez que hay un cambio).
+const RPIX_STORAGE_KEY = 'rpix_datos_v1';
+function guardarDatos(){
+  try{
+    localStorage.setItem(RPIX_STORAGE_KEY, JSON.stringify({ locales, codigos, marcas, talleres, productosPromo }));
+  }catch(err){
+    // Almacenamiento no disponible (por ejemplo, en algunas vistas previas). Los datos no persistirán.
+  }
+}
+function cargarDatos(){
+  try{
+    const guardado = localStorage.getItem(RPIX_STORAGE_KEY);
+    if(!guardado) return;
+    const data = JSON.parse(guardado);
+    if(Array.isArray(data.locales)) locales = data.locales;
+    if(Array.isArray(data.codigos)) codigos = data.codigos;
+    if(Array.isArray(data.marcas)) marcas = data.marcas;
+    if(Array.isArray(data.talleres)) talleres = data.talleres;
+    if(Array.isArray(data.productosPromo)) productosPromo = data.productosPromo;
+  }catch(err){
+    // Si el archivo guardado está corrupto o no se puede leer, se sigue con los datos vacíos.
+  }
+}
+
+// ---------- Inicializar vistas ----------
+cargarDatos();
+agregarFilaExtension();
+renderLocales();
+renderCodigos();
+renderMarcas();
+renderProductosPromo();
+calcularSinIntereses(true);
+
+// ---------- Registrar Service Worker (permite instalar y usar sin internet) ----------
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{
+      // Si falla (por ejemplo al abrir el archivo directamente sin servidor web), no pasa nada grave:
+      // la app sigue funcionando normal, solo sin modo instalable/offline.
+    });
+  });
+}
+
+// ---------- Botón "Instalar app" ----------
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  deferredInstallPrompt = e;
+});
+function instalarApp(){
+  cerrarGearMenu();
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.finally(()=>{ deferredInstallPrompt = null; });
+  } else {
+    mostrarAviso('Para instalar: abre el menú ⋮ de tu navegador y elige "Agregar a pantalla de inicio" o "Instalar app". En iPhone: botón Compartir → "Agregar a pantalla de inicio".');
+  }
+}
+</script>
+
+</body>
+</html>
